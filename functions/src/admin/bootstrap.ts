@@ -32,8 +32,10 @@ export const bootstrapSuperAdmin = onCall<BootstrapSuperAdminRequest>(
   async (request) => {
     const { email, password, firstName, lastName, phone, bootstrapKey } = request.data;
 
-    // Validate bootstrap key (use environment variable or hardcoded for testing)
-    const expectedKey = process.env.BOOTSTRAP_KEY || "CHANGE_THIS_IN_PRODUCTION";
+    // Validate bootstrap key
+    // For initial setup, use the default key. Set BOOTSTRAP_KEY env var for production.
+    const envKey = process.env.BOOTSTRAP_KEY;
+    const expectedKey = (envKey && envKey.trim() !== "") ? envKey : "CHANGE_THIS_IN_PRODUCTION";
 
     if (!bootstrapKey || bootstrapKey !== expectedKey) {
       throw new HttpsError("permission-denied", "Invalid bootstrap key");
