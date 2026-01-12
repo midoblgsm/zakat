@@ -43,7 +43,7 @@ async function bootstrapSuperAdmin() {
     try {
       userRecord = await auth.getUserByEmail(SUPER_ADMIN_CONFIG.email);
       console.log(`User already exists with UID: ${userRecord.uid}`);
-    } catch (error) {
+    } catch {
       // User doesn't exist, create new one
       console.log("Creating new user...");
       userRecord = await auth.createUser({
