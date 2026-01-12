@@ -90,12 +90,8 @@ service cloud.firestore {
       // Validate admin update
       function isValidAdminUserUpdate(targetUserId) {
         // Super admins can update anything
-        if (isSuperAdmin()) {
-          return true;
-        }
         // Zakat admins can only update applicants
-        let targetRole = resource.data.role;
-        return targetRole == 'applicant';
+        return isSuperAdmin() || resource.data.role == 'applicant';
       }
     }
 
