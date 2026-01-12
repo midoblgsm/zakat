@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHMA Zakat Application Form - WordPress Version</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        .form-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2e7d32;
+            padding-bottom: 20px;
+        }
+        .form-header h1 {
+            color: #2e7d32;
+            margin-bottom: 5px;
+        }
+        .form-header p {
+            color: #666;
+            margin: 5px 0;
+        }
+        .notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+        .instructions ul {
+            margin-bottom: 0;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
+            border-left: 4px solid #2e7d32;
+        }
+        .section h2 {
+            color: #2e7d32;
+            margin-top: 0;
+            font-size: 1.3em;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-group.full-width {
+            flex: 100%;
+        }
+        .form-group.half-width {
+            flex: 0 0 calc(50% - 8px);
+        }
+        .form-group.third-width {
+            flex: 0 0 calc(33.333% - 10px);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        label .required {
+            color: #d32f2f;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+        }
+        .radio-group,
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px 0;
+        }
+        .radio-group label,
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .radio-group input,
+        .checkbox-group input {
+            margin-right: 8px;
+            width: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #2e7d32;
+            color: white;
+            font-weight: 600;
+        }
+        td input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            padding: 5px;
+        }
+        td input:focus {
+            background: #fff;
+            outline: 2px solid #2e7d32;
+        }
+        .add-row-btn {
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .add-row-btn:hover {
+            background-color: #1b5e20;
+        }
+        .file-upload {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        .file-upload:hover {
+            border-color: #2e7d32;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-upload label {
+            cursor: pointer;
+            color: #2e7d32;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .signature-box {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+            background: #fff;
+            min-height: 100px;
+            border-radius: 5px;
+        }
+        .submit-btn {
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #1b5e20;
+        }
+        .info-box {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .currency-input {
+            position: relative;
+        }
+        .currency-input::before {
+            content: "$";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+        .currency-input input {
+            padding-left: 25px;
+        }
+        .conditional-field {
+            margin-left: 25px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            .form-group.half-width,
+            .form-group.third-width {
+                flex: 100%;
+            }
+            .form-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="form-header">
+            <h1>Mountain House Muslim Association</h1>
+            <p>Mountain House, CA 95391</p>
+            <p><a href="mailto:zakat@mhma.info">zakat@mhma.info</a></p>
+            <h2>Zakat Application Form</h2>
+        </div>
+
+        <div class="notice">
+            <strong>NOTICE OF CONFIDENTIALITY:</strong> This Zakat Form includes personal and confidential information intended only for restricted, internal use by authorized personnel exclusively for evaluation of Zakat requests. Unauthorized use, copying, distribution or dissemination of the information provided in this application is strictly prohibited.
+        </div>
+
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ul>
+                <li>Please provide accurate and detailed information to enable a timely and effective application evaluation.</li>
+                <li>Note that an incomplete form will not be considered for evaluation.</li>
+                <li>Provide clear copies of:
+                    <ol>
+                        <li>Photo ID: For the applicant, spouse and all dependents</li>
+                        <li>Social Security Card (for all those that provided photo ID)</li>
+                        <li>Lease agreement (if renting)</li>
+                        <li>Other documentation (medical reports, receipts, billing statements)</li>
+                    </ol>
+                </li>
+                <li>All documentation becomes MHMA Zakat Committee property.</li>
+                <li>Normal processing time is typically one (1) week.</li>
+            </ul>
+        </div>
+
+        <form id="zakatForm" action="#" method="post" enctype="multipart/form-data">
+
+            <!-- Section 1: Applicant's Demographic Data -->
+            <div class="section">
+                <h2>Applicant's Demographic Data</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" name="first_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name <span class="required">*</span></label>
+                        <input type="text" id="lastName" name="last_name" required>
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label for="middleInitial">Middle Initial</label>
+                        <input type="text" id="middleInitial" name="middle_initial" maxlength="1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Do you have an SSN? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="has_ssn" value="yes" required> Yes</label>
+                            <label><input type="radio" name="has_ssn" value="no"> No</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label for="age">Age <span class="required">*</span></label>
+                        <input type="number" id="age" name="age" min="1" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Gender <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="gender" value="male" required> Male</label>
+                            <label><input type="radio" name="gender" value="female"> Female</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Do you have a Driver License/ID? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="has_driver_license" value="yes" required> Yes</label>
+                            <label><input type="radio" name="has_driver_license" value="no"> No</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="address">Address <span class="required">*</span></label>
+                        <input type="text" id="address" name="address" required>
+                    </div>
+                    <div class="form-group" style="max-width: 120px;">
+                        <label for="aptNumber">Apt/House #</label>
+                        <input type="text" id="aptNumber" name="apt_number">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">City <span class="required">*</span></label>
+                        <input type="text" id="city" name="city" required>
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label for="state">State <span class="required">*</span></label>
+                        <select id="state" name="state" required>
+                            <option value="">--</option>
+                            <option value="CA">CA</option>
+                            <option value="AL">AL</option>
+                            <option value="AK">AK</option>
+                            <option value="AZ">AZ</option>
+                            <!-- Add all states -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="max-width: 120px;">
+                        <label for="zip">Zip <span class="required">*</span></label>
+                        <input type="text" id="zip" name="zip" pattern="\d{5}" maxlength="5" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="primaryPhone">Primary Phone <span class="required">*</span></label>
+                        <input type="tel" id="primaryPhone" name="primary_phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="secondaryPhone">Secondary Phone</label>
+                        <input type="tel" id="secondaryPhone" name="secondary_phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Marital Status <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="marital_status" value="single" required> Single</label>
+                            <label><input type="radio" name="marital_status" value="married"> Married</label>
+                            <label><input type="radio" name="marital_status" value="divorced"> Divorced</label>
+                            <label><input type="radio" name="marital_status" value="widowed"> Widowed</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="masjid">Masjid or Islamic Center you frequently visit or are associated with</label>
+                        <input type="text" id="masjid" name="masjid">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Do you speak English? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="speak_english" value="yes" required onchange="toggleLanguageField()"> Yes</label>
+                            <label><input type="radio" name="speak_english" value="no" onchange="toggleLanguageField()"> No</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="primaryLanguageGroup" style="display: none;">
+                        <label for="primaryLanguage">Primary Language</label>
+                        <input type="text" id="primaryLanguage" name="primary_language">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Applicant Circumstances -->
+            <div class="section">
+                <h2>Applicant Circumstances</h2>
+
+                <p><strong>People in your household:</strong></p>
+                <table id="householdTable">
+                    <thead>
+                        <tr>
+                            <th>Age</th>
+                            <th>Dependent on you?</th>
+                            <th>Relationship</th>
+                            <th>Source of income (if any)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="number" name="household[0][age]" min="0" max="120"></td>
+                            <td>
+                                <select name="household[0][dependent]">
+                                    <option value="">--</option>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </td>
+                            <td><input type="text" name="household[0][relationship]"></td>
+                            <td><input type="text" name="household[0][income_source]"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-row-btn" onclick="addHouseholdRow()">+ Add Another Person</button>
+
+                <div class="form-row" style="margin-top: 20px;">
+                    <div class="form-group full-width">
+                        <label>Have you applied for Zakat before to MHMA?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="applied_mhma_before" value="yes" onchange="toggleMHMADate()"> Yes</label>
+                            <label><input type="radio" name="applied_mhma_before" value="no" onchange="toggleMHMADate()"> No</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="mhmaDateGroup" style="display: none;" class="conditional-field">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>When was that?</label>
+                            <div class="form-row">
+                                <input type="text" name="mhma_month" placeholder="Month" style="width: 100px;">
+                                <input type="text" name="mhma_year" placeholder="Year" style="width: 80px;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>What was the outcome?</label>
+                            <select name="mhma_outcome">
+                                <option value="">--</option>
+                                <option value="approved">Approved</option>
+                                <option value="denied">Denied</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Have you applied for Zakat before to any other organization?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="applied_other_before" value="yes" onchange="toggleOtherOrg()"> Yes</label>
+                            <label><input type="radio" name="applied_other_before" value="no" onchange="toggleOtherOrg()"> No</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="otherOrgGroup" style="display: none;" class="conditional-field">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>When?</label>
+                            <input type="text" name="other_org_when">
+                        </div>
+                        <div class="form-group">
+                            <label>Organization Name</label>
+                            <input type="text" name="other_org_name">
+                        </div>
+                        <div class="form-group">
+                            <label>Was it approved?</label>
+                            <select name="other_org_approved">
+                                <option value="">--</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top: 20px;">
+                    <div class="form-group full-width">
+                        <label>Place of current residence <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="residence_type" value="own_house" required onchange="toggleResidenceOther()"> Own House</label>
+                            <label><input type="radio" name="residence_type" value="shelter" onchange="toggleResidenceOther()"> Shelter</label>
+                            <label><input type="radio" name="residence_type" value="rental_apartment" onchange="toggleResidenceOther()"> Rental Apartment</label>
+                            <label><input type="radio" name="residence_type" value="room_rental" onchange="toggleResidenceOther()"> Room Rental (in house)</label>
+                            <label><input type="radio" name="residence_type" value="subsidized" onchange="toggleResidenceOther()"> Subsidized (low income) Housing</label>
+                            <label><input type="radio" name="residence_type" value="other" onchange="toggleResidenceOther()"> Other</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="residenceOtherGroup" style="display: none;" class="conditional-field">
+                    <div class="form-group">
+                        <label>Please specify:</label>
+                        <input type="text" name="residence_other_details" placeholder="Please describe your residence type">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>If renting, does anyone share the rent with you?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="share_rent" value="yes" onchange="toggleShareRent()"> Yes</label>
+                            <label><input type="radio" name="share_rent" value="no" onchange="toggleShareRent()"> No</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="shareRentAmount" style="display: none;">
+                        <label>How much do they contribute?</label>
+                        <div class="currency-input">
+                            <input type="number" name="share_rent_amount" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Method of Transportation</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="transportation" value="own_auto" onchange="toggleAutoDetails()"> Own Automobile</label>
+                            <label><input type="radio" name="transportation" value="public" onchange="toggleAutoDetails()"> Public Transport</label>
+                            <label><input type="radio" name="transportation" value="other" onchange="toggleAutoDetails()"> Other</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="autoDetails" style="display: none;">
+                        <label>Make, Model and Year</label>
+                        <input type="text" name="auto_details">
+                    </div>
+                    <div class="form-group" id="transportOtherDetails" style="display: none;">
+                        <label>Please specify:</label>
+                        <input type="text" name="transport_other_details" placeholder="Please describe your transportation method">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Employment Status <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="employment_status" value="full_time" required onchange="toggleEmployer()"> Full Time</label>
+                            <label><input type="radio" name="employment_status" value="part_time" onchange="toggleEmployer()"> Part Time</label>
+                            <label><input type="radio" name="employment_status" value="unemployed" onchange="toggleEmployer()"> Unemployed</label>
+                            <label><input type="radio" name="employment_status" value="self_employed" onchange="toggleEmployer()"> Self-Employed</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="employerGroup" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label>Employer Name or Business Name</label>
+                        <input type="text" name="employer_name">
+                    </div>
+                    <div class="form-group" id="partTimeHours" style="display: none;">
+                        <label>Hours per week</label>
+                        <input type="number" name="hours_per_week" min="0" max="168">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Health Insurance <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="health_insurance" value="insured" required onchange="toggleHealthOther()"> Insured</label>
+                            <label><input type="radio" name="health_insurance" value="uninsured" onchange="toggleHealthOther()"> Uninsured</label>
+                            <label><input type="radio" name="health_insurance" value="medi_cal" onchange="toggleHealthOther()"> Medi-Cal/Medicare</label>
+                            <label><input type="radio" name="health_insurance" value="other" onchange="toggleHealthOther()"> Other</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="healthOtherDetails" style="display: none;">
+                        <label>Please specify:</label>
+                        <input type="text" name="health_insurance_other_details" placeholder="Please describe your health insurance">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Education</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="education" value="college_grad" onchange="toggleEducationOther()"> College Grad</label>
+                            <label><input type="radio" name="education" value="high_school" onchange="toggleEducationOther()"> High School</label>
+                            <label><input type="radio" name="education" value="unknown" onchange="toggleEducationOther()"> Unknown</label>
+                            <label><input type="radio" name="education" value="other" onchange="toggleEducationOther()"> Other</label>
+                        </div>
+                    </div>
+                    <div class="form-group" id="educationOtherDetails" style="display: none;">
+                        <label>Please specify:</label>
+                        <input type="text" name="education_other_details" placeholder="Please describe your education level">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Assets -->
+            <div class="section">
+                <h2>Assets Owned by the Household</h2>
+
+                <table id="assetsTable">
+                    <thead>
+                        <tr>
+                            <th>Type of Asset</th>
+                            <th>Value ($)</th>
+                            <th>Date Owned</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>House</td>
+                            <td><input type="number" name="asset_house_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                            <td><input type="date" name="asset_house_date"></td>
+                        </tr>
+                        <tr>
+                            <td>Business</td>
+                            <td><input type="number" name="asset_business_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                            <td><input type="date" name="asset_business_date"></td>
+                        </tr>
+                        <tr>
+                            <td>Car(s)</td>
+                            <td><input type="number" name="asset_cars_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                            <td><input type="date" name="asset_cars_date"></td>
+                        </tr>
+                        <tr>
+                            <td>Cash</td>
+                            <td><input type="number" name="asset_cash_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                            <td><input type="date" name="asset_cash_date"></td>
+                        </tr>
+                        <tr>
+                            <td><input type="text" name="asset_other1_type" placeholder="Other (Specify)"></td>
+                            <td><input type="number" name="asset_other1_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                            <td><input type="date" name="asset_other1_date"></td>
+                        </tr>
+                        <tr style="background: #e8f5e9; font-weight: bold;" id="assetsTotalRow">
+                            <td>Total</td>
+                            <td><input type="text" id="totalAssets" readonly style="font-weight: bold;"></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-row-btn" onclick="addAssetRow()">+ Add Another Asset</button>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="monthlyIncome">Your Monthly Income <span class="required">*</span></label>
+                        <div class="currency-input">
+                            <input type="number" id="monthlyIncome" name="monthly_income" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="govAid">Amount receiving from Government Aid monthly</label>
+                        <div class="currency-input">
+                            <input type="number" id="govAid" name="government_aid" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Loans/Debts -->
+            <div class="section">
+                <h2>Loan or Debt (including Credit Card or Mortgage)</h2>
+
+                <table id="debtsTable">
+                    <thead>
+                        <tr>
+                            <th>Amount ($)</th>
+                            <th>Lender</th>
+                            <th>Payment Frequency</th>
+                            <th>Due Date</th>
+                            <th>Loan used for</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="number" name="debt[0][amount]" min="0" step="0.01"></td>
+                            <td><input type="text" name="debt[0][lender]"></td>
+                            <td>
+                                <select name="debt[0][frequency]">
+                                    <option value="">--</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="biweekly">Bi-weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                    <option value="annually">Annually</option>
+                                </select>
+                            </td>
+                            <td><input type="date" name="debt[0][due_date]"></td>
+                            <td><input type="text" name="debt[0][purpose]"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-row-btn" onclick="addDebtRow()">+ Add Another Debt</button>
+            </div>
+
+            <!-- Section 5: Monthly Expenses -->
+            <div class="section">
+                <h2>Estimate of Monthly Expenses</h2>
+
+                <table id="expensesTable">
+                    <thead>
+                        <tr>
+                            <th>Expense</th>
+                            <th>Amount ($)</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Rent (if any)</td>
+                            <td><input type="number" name="expense_rent" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_rent_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Clothing and Laundry</td>
+                            <td><input type="number" name="expense_clothing" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_clothing_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Food</td>
+                            <td><input type="number" name="expense_food" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_food_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Transportation</td>
+                            <td><input type="number" name="expense_transportation" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_transportation_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Phone and Internet</td>
+                            <td><input type="number" name="expense_phone" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_phone_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Electricity and Gas</td>
+                            <td><input type="number" name="expense_utilities" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_utilities_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>City and HOA</td>
+                            <td><input type="number" name="expense_hoa" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_hoa_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tuition, Books, School Expense</td>
+                            <td><input type="number" name="expense_education" min="0" step="0.01" class="expense-input"></td>
+                            <td>
+                                <select name="expense_education_freq">
+                                    <option value="monthly">Monthly</option>
+                                    <option value="semester">Semester</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr style="background: #e8f5e9; font-weight: bold;" id="expensesTotalRow">
+                            <td>Total Monthly</td>
+                            <td><input type="text" id="totalExpenses" readonly style="font-weight: bold;"></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" class="add-row-btn" onclick="addExpenseRow()">+ Add Another Expense</button>
+            </div>
+
+            <!-- Section 6: Zakat Eligibility -->
+            <div class="section">
+                <h2>Zakat Eligibility</h2>
+
+                <div class="info-box">
+                    <p><strong>What is Nisab?</strong> The nisab is a threshold figure that determines if someone's wealth is liable for Zakat and can be measured in gold or silver. The nisab by the gold standard is 3 ounces of gold, or its cash equivalent, which is around <strong>$7,630.00</strong> (as of Jan 15, 2025) or above. The nisab by the silver standard is 21 ounces of silver, or its cash equivalent.</p>
+                    <p>A person is eligible to receive Zakat if they are poor or needy and their invest property/savings is above their basic needs but below the nisab threshold.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Are you eligible for Zakat? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="zakat_eligible" value="yes" required> Yes</label>
+                            <label><input type="radio" name="zakat_eligible" value="no"> No</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7: Reason for Application -->
+            <div class="section">
+                <h2>Reason for Application</h2>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="reason">Why are you applying for Zakat? <span class="required">*</span></label>
+                        <textarea id="reason" name="reason" placeholder="Please explain your situation and why you need assistance..." required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Do you need assistance on monthly basis or one time? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="assistance_type" value="monthly" required onchange="toggleAssistanceDetails()"> Monthly</label>
+                            <label><input type="radio" name="assistance_type" value="one_time" onchange="toggleAssistanceDetails()"> One-time</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="monthlyAssistance" style="display: none;" class="conditional-field">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>For how long?</label>
+                            <input type="text" name="monthly_duration" placeholder="e.g., 3 months, 6 months">
+                        </div>
+                        <div class="form-group">
+                            <label>How much amount per month?</label>
+                            <div class="currency-input">
+                                <input type="number" name="monthly_amount" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="oneTimeAssistance" style="display: none;" class="conditional-field">
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label>How much is your need?</label>
+                            <div class="currency-input">
+                                <input type="number" name="one_time_amount" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 8: References -->
+            <div class="section">
+                <h2>References</h2>
+
+                <div class="notice" style="background-color: #fff3cd;">
+                    <strong>Notice:</strong> References should neither be immediate relatives or people who live with you, nor Zakat recipients. Muslim references especially from local masjid is preferred, at least one.
+                </div>
+
+                <!-- Reference 1 -->
+                <h4>Reference 1 <span class="required">*</span></h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="ref1_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="ref1_phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <input type="text" name="ref1_relationship" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Address</label>
+                        <input type="text" name="ref1_address">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" name="ref1_city">
+                    </div>
+                    <div class="form-group" style="max-width: 80px;">
+                        <label>State</label>
+                        <input type="text" name="ref1_state" maxlength="2">
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label>Zip</label>
+                        <input type="text" name="ref1_zip" maxlength="5">
+                    </div>
+                </div>
+
+                <!-- Reference 2 -->
+                <h4>Reference 2 <span class="required">*</span></h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="ref2_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="ref2_phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <input type="text" name="ref2_relationship" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Address</label>
+                        <input type="text" name="ref2_address">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" name="ref2_city">
+                    </div>
+                    <div class="form-group" style="max-width: 80px;">
+                        <label>State</label>
+                        <input type="text" name="ref2_state" maxlength="2">
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label>Zip</label>
+                        <input type="text" name="ref2_zip" maxlength="5">
+                    </div>
+                </div>
+
+                <!-- Reference 3 -->
+                <h4>Reference 3 (Optional)</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="ref3_name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="ref3_phone">
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <input type="text" name="ref3_relationship">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Address</label>
+                        <input type="text" name="ref3_address">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" name="ref3_city">
+                    </div>
+                    <div class="form-group" style="max-width: 80px;">
+                        <label>State</label>
+                        <input type="text" name="ref3_state" maxlength="2">
+                    </div>
+                    <div class="form-group" style="max-width: 100px;">
+                        <label>Zip</label>
+                        <input type="text" name="ref3_zip" maxlength="5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 9: Document Upload -->
+            <div class="section">
+                <h2>Required Documents</h2>
+
+                <div class="form-row">
+                    <div class="form-group half-width">
+                        <label>Photo ID (Driver's License, State ID, or Passport) <span class="required">*</span></label>
+                        <div class="file-upload">
+                            <input type="file" id="photoId" name="photo_id" accept=".pdf,.jpg,.jpeg,.png" required>
+                            <label for="photoId">Click to upload or drag and drop</label>
+                        </div>
+                    </div>
+                    <div class="form-group half-width">
+                        <label>Social Security Card <span class="required">*</span></label>
+                        <div class="file-upload">
+                            <input type="file" id="ssnCard" name="ssn_card" accept=".pdf,.jpg,.jpeg,.png" required>
+                            <label for="ssnCard">Click to upload or drag and drop</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group half-width">
+                        <label>Lease Agreement (if renting)</label>
+                        <div class="file-upload">
+                            <input type="file" id="lease" name="lease_agreement" accept=".pdf,.jpg,.jpeg,.png">
+                            <label for="lease">Click to upload or drag and drop</label>
+                        </div>
+                    </div>
+                    <div class="form-group half-width">
+                        <label>Other Supporting Documents</label>
+                        <div class="file-upload">
+                            <input type="file" id="otherDocs" name="other_documents[]" accept=".pdf,.jpg,.jpeg,.png" multiple>
+                            <label for="otherDocs">Click to upload or drag and drop (medical reports, receipts, billing statements)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 10: Statement and Signature -->
+            <div class="section">
+                <h2>Statement and Signature</h2>
+
+                <div class="info-box" style="background: #fff8e1; border-color: #ff9800;">
+                    <p>I testify in front of Allah (سبحانه و تعالى) that the information provided on this form is true and accurate to the best of my knowledge. I agree that the information provided in this application will be utilized in connection with this request for Zakat. I will immediately inform MHMA Zakat Committee if I apply for Zakat or any other form of assistance to any other organization, or there is any change in the circumstances I have mentioned in the form.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" name="agreement" required>
+                            I agree to the above statement <span class="required">*</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="applicantName">Applicant Name (Print) <span class="required">*</span></label>
+                        <input type="text" id="applicantName" name="applicant_signature_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="applicantDate">Date <span class="required">*</span></label>
+                        <input type="date" id="applicantDate" name="applicant_signature_date" required>
+                    </div>
+                </div>
+
+                <h4>Person filling the form for the Applicant (if applicable)</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="helperName">Name (Print)</label>
+                        <input type="text" id="helperName" name="helper_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="helperDate">Date</label>
+                        <input type="date" id="helperDate" name="helper_date">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Application</button>
+        </form>
+    </div>
+
+    <script>
+        // Toggle functions for conditional fields
+        function toggleLanguageField() {
+            const speaksEnglish = document.querySelector('input[name="speak_english"]:checked');
+            const languageGroup = document.getElementById('primaryLanguageGroup');
+            languageGroup.style.display = speaksEnglish && speaksEnglish.value === 'no' ? 'block' : 'none';
+        }
+
+        function toggleMHMADate() {
+            const applied = document.querySelector('input[name="applied_mhma_before"]:checked');
+            const dateGroup = document.getElementById('mhmaDateGroup');
+            dateGroup.style.display = applied && applied.value === 'yes' ? 'block' : 'none';
+        }
+
+        function toggleOtherOrg() {
+            const applied = document.querySelector('input[name="applied_other_before"]:checked');
+            const orgGroup = document.getElementById('otherOrgGroup');
+            orgGroup.style.display = applied && applied.value === 'yes' ? 'block' : 'none';
+        }
+
+        function toggleShareRent() {
+            const shareRent = document.querySelector('input[name="share_rent"]:checked');
+            const amountGroup = document.getElementById('shareRentAmount');
+            amountGroup.style.display = shareRent && shareRent.value === 'yes' ? 'block' : 'none';
+        }
+
+        function toggleAutoDetails() {
+            const transport = document.querySelector('input[name="transportation"]:checked');
+            const autoDetails = document.getElementById('autoDetails');
+            const transportOther = document.getElementById('transportOtherDetails');
+            autoDetails.style.display = transport && transport.value === 'own_auto' ? 'block' : 'none';
+            transportOther.style.display = transport && transport.value === 'other' ? 'block' : 'none';
+        }
+
+        function toggleEmployer() {
+            const status = document.querySelector('input[name="employment_status"]:checked');
+            const employerGroup = document.getElementById('employerGroup');
+            const partTimeHours = document.getElementById('partTimeHours');
+
+            if (status && (status.value === 'full_time' || status.value === 'part_time' || status.value === 'self_employed')) {
+                employerGroup.style.display = 'flex';
+                partTimeHours.style.display = status.value === 'part_time' ? 'block' : 'none';
+            } else {
+                employerGroup.style.display = 'none';
+            }
+        }
+
+        function toggleAssistanceDetails() {
+            const assistanceType = document.querySelector('input[name="assistance_type"]:checked');
+            document.getElementById('monthlyAssistance').style.display = assistanceType && assistanceType.value === 'monthly' ? 'block' : 'none';
+            document.getElementById('oneTimeAssistance').style.display = assistanceType && assistanceType.value === 'one_time' ? 'block' : 'none';
+        }
+
+        function toggleResidenceOther() {
+            const residence = document.querySelector('input[name="residence_type"]:checked');
+            const residenceOther = document.getElementById('residenceOtherGroup');
+            residenceOther.style.display = residence && residence.value === 'other' ? 'block' : 'none';
+        }
+
+        function toggleHealthOther() {
+            const health = document.querySelector('input[name="health_insurance"]:checked');
+            const healthOther = document.getElementById('healthOtherDetails');
+            healthOther.style.display = health && health.value === 'other' ? 'block' : 'none';
+        }
+
+        function toggleEducationOther() {
+            const education = document.querySelector('input[name="education"]:checked');
+            const educationOther = document.getElementById('educationOtherDetails');
+            educationOther.style.display = education && education.value === 'other' ? 'block' : 'none';
+        }
+
+        // Add row functions for repeater tables
+        let householdRowCount = 1;
+        function addHouseholdRow() {
+            const tbody = document.querySelector('#householdTable tbody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="number" name="household[${householdRowCount}][age]" min="0" max="120"></td>
+                <td>
+                    <select name="household[${householdRowCount}][dependent]">
+                        <option value="">--</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </td>
+                <td><input type="text" name="household[${householdRowCount}][relationship]"></td>
+                <td><input type="text" name="household[${householdRowCount}][income_source]"></td>
+            `;
+            tbody.appendChild(newRow);
+            householdRowCount++;
+        }
+
+        let debtRowCount = 1;
+        function addDebtRow() {
+            const tbody = document.querySelector('#debtsTable tbody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="number" name="debt[${debtRowCount}][amount]" min="0" step="0.01"></td>
+                <td><input type="text" name="debt[${debtRowCount}][lender]"></td>
+                <td>
+                    <select name="debt[${debtRowCount}][frequency]">
+                        <option value="">--</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="annually">Annually</option>
+                    </select>
+                </td>
+                <td><input type="date" name="debt[${debtRowCount}][due_date]"></td>
+                <td><input type="text" name="debt[${debtRowCount}][purpose]"></td>
+            `;
+            tbody.appendChild(newRow);
+            debtRowCount++;
+        }
+
+        let assetRowCount = 2;
+        function addAssetRow() {
+            const totalRow = document.getElementById('assetsTotalRow');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" name="asset_other${assetRowCount}_type" placeholder="Other (Specify)"></td>
+                <td><input type="number" name="asset_other${assetRowCount}_value" min="0" step="0.01" placeholder="0.00" class="asset-input"></td>
+                <td><input type="date" name="asset_other${assetRowCount}_date"></td>
+            `;
+            totalRow.parentNode.insertBefore(newRow, totalRow);
+            assetRowCount++;
+        }
+
+        let expenseRowCount = 1;
+        function addExpenseRow() {
+            const totalRow = document.getElementById('expensesTotalRow');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" name="expense_other${expenseRowCount}_desc" placeholder="Other (Specify)"></td>
+                <td><input type="number" name="expense_other${expenseRowCount}" min="0" step="0.01" class="expense-input"></td>
+                <td>
+                    <select name="expense_other${expenseRowCount}_freq">
+                        <option value="monthly">Monthly</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                </td>
+            `;
+            totalRow.parentNode.insertBefore(newRow, totalRow);
+            expenseRowCount++;
+        }
+
+        // Form submission
+        document.getElementById('zakatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Form submitted successfully! The Zakat Committee will review your application and contact you within one week.');
+        });
+    </script>
+</body>
+</html>
