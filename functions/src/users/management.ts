@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
-import { auth, db, COLLECTIONS } from "../config";
+import { auth, db, COLLECTIONS, CORS_ORIGINS } from "../config";
 import {
   CreateAdminRequest,
   DisableUserRequest,
@@ -15,7 +15,7 @@ import { isValidEmail, isValidPhone, hasPermission, sanitizeString } from "../ut
  * Can only be called by super_admin
  */
 export const createAdminUser = onCall<CreateAdminRequest>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     // Verify caller is authenticated
     if (!request.auth) {
@@ -149,7 +149,7 @@ export const createAdminUser = onCall<CreateAdminRequest>(
  * Can be called by super_admin, or zakat_admin for users in their masjid
  */
 export const disableUser = onCall<DisableUserRequest>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -228,7 +228,7 @@ export const disableUser = onCall<DisableUserRequest>(
  * Can be called by super_admin, or zakat_admin for applicants
  */
 export const enableUser = onCall<{ userId: string }>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -294,7 +294,7 @@ export const listUsers = onCall<{
   limit?: number;
   offset?: number;
 }>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -362,7 +362,7 @@ export const listUsers = onCall<{
  * Can be called by the user themselves or by admins
  */
 export const getUser = onCall<{ userId: string }>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");

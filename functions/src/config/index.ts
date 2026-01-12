@@ -28,3 +28,11 @@ export const ROLE_HIERARCHY: Record<string, number> = {
 };
 
 export { admin };
+
+// CORS configuration for callable functions
+export const CORS_ORIGINS = [
+  "https://zakat-a63f4.web.app",
+  "https://zakat-a63f4.firebaseapp.com",
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
