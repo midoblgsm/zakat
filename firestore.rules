@@ -1,0 +1,226 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is the owner of a document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Get user's role from custom claims
+    function getUserRole() {
+      return request.auth.token.role;
+    }
+
+    // Get user's masjid from custom claims
+    function getUserMasjid() {
+      return request.auth.token.masjidId;
+    }
+
+    // Check if user is a super admin
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+
+    // Check if user is a zakat admin
+    function isZakatAdmin() {
+      return isAuthenticated() && getUserRole() == 'zakat_admin';
+    }
+
+    // Check if user is an admin (super_admin or zakat_admin)
+    function isAdmin() {
+      return isSuperAdmin() || isZakatAdmin();
+    }
+
+    // Check if user is a zakat admin for a specific masjid
+    function isZakatAdminForMasjid(masjidId) {
+      return isZakatAdmin() && getUserMasjid() == masjidId;
+    }
+
+    // Validate required string field
+    function isValidString(field) {
+      return field is string && field.size() > 0;
+    }
+
+    // Validate email format (basic check)
+    function isValidEmail(email) {
+      return email is string && email.matches('.*@.*\\..*');
+    }
+
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    match /users/{userId} {
+      // Users can read their own profile
+      // Admins can read any user profile
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can create their own profile during registration
+      // The profile must have their own UID
+      allow create: if isOwner(userId)
+        && request.resource.data.id == userId
+        && request.resource.data.role == 'applicant'
+        && isValidEmail(request.resource.data.email);
+
+      // Users can update their own profile (limited fields)
+      // Admins can update any profile
+      allow update: if (isOwner(userId) && isValidUserSelfUpdate())
+        || (isAdmin() && isValidAdminUserUpdate(userId));
+
+      // Only super admins can delete users (soft delete preferred)
+      allow delete: if isSuperAdmin();
+
+      // Validate self-update (users can't change role, email, id)
+      function isValidUserSelfUpdate() {
+        let unchangedFields = ['id', 'email', 'role', 'masjidId', 'createdAt', 'createdBy',
+                               'isFlagged', 'flaggedReason', 'flaggedAt', 'flaggedBy', 'flaggedByMasjid'];
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(unchangedFields) == false;
+      }
+
+      // Validate admin update
+      function isValidAdminUserUpdate(targetUserId) {
+        // Super admins can update anything
+        if (isSuperAdmin()) {
+          return true;
+        }
+        // Zakat admins can only update applicants
+        let targetRole = resource.data.role;
+        return targetRole == 'applicant';
+      }
+    }
+
+    // ============================================
+    // MASJIDS COLLECTION
+    // ============================================
+    match /masjids/{masjidId} {
+      // Anyone authenticated can read masjid info (for registration)
+      allow read: if isAuthenticated();
+
+      // Only super admins can create/update/delete masjids
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // APPLICATIONS COLLECTION
+    // ============================================
+    match /applications/{applicationId} {
+      // Helper to get application data
+      function getApplication() {
+        return resource.data;
+      }
+
+      // Applicants can read their own applications
+      // Zakat admins can read applications for their masjid
+      // Super admins can read all applications
+      allow read: if isOwner(getApplication().applicantId)
+        || isZakatAdminForMasjid(getApplication().masjidId)
+        || isSuperAdmin();
+
+      // Applicants can create applications for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.applicantId == request.auth.uid
+        && request.resource.data.status == 'draft';
+
+      // Applicants can update their own draft applications
+      // Admins can update applications in their masjid
+      allow update: if (isOwner(getApplication().applicantId)
+          && getApplication().status in ['draft', 'returned'])
+        || isZakatAdminForMasjid(getApplication().masjidId)
+        || isSuperAdmin();
+
+      // Only super admins can delete applications
+      allow delete: if isSuperAdmin();
+
+      // Application history subcollection
+      match /history/{historyId} {
+        // Same read permissions as parent application
+        allow read: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
+          || isZakatAdminForMasjid(get(/databases/$(database)/documents/applications/$(applicationId)).data.masjidId)
+          || isSuperAdmin();
+
+        // Only admins can create history entries
+        allow create: if isAdmin();
+
+        // History entries cannot be updated or deleted
+        allow update, delete: if false;
+      }
+    }
+
+    // ============================================
+    // FLAGS COLLECTION
+    // ============================================
+    match /flags/{flagId} {
+      // Admins can read flags
+      allow read: if isAdmin();
+
+      // Only admins can create flags
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == request.auth.uid;
+
+      // Only super admins or the flag creator can update
+      allow update: if isSuperAdmin()
+        || (isZakatAdmin() && resource.data.createdBy == request.auth.uid);
+
+      // Only super admins can delete flags
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Only system (Cloud Functions) should create notifications
+      // Using admin SDK bypasses rules
+      allow create: if false;
+
+      // Users can mark their own notifications as read
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ============================================
+    // AUDIT LOGS COLLECTION (System only)
+    // ============================================
+    match /auditLogs/{logId} {
+      // Only super admins can read audit logs
+      allow read: if isSuperAdmin();
+
+      // Only Cloud Functions can write (uses admin SDK)
+      allow create, update, delete: if false;
+    }
+
+    // ============================================
+    // SYSTEM SETTINGS (Super Admin only)
+    // ============================================
+    match /settings/{settingId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    // ============================================
+    // DEFAULT: DENY ALL
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

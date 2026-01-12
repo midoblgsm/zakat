@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user is the owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Get user's role from custom claims
+    function getUserRole() {
+      return request.auth.token.role;
+    }
+
+    // Check if user is a super admin
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+
+    // Check if user is a zakat admin
+    function isZakatAdmin() {
+      return isAuthenticated() && getUserRole() == 'zakat_admin';
+    }
+
+    // Check if user is an admin
+    function isAdmin() {
+      return isSuperAdmin() || isZakatAdmin();
+    }
+
+    // Validate file size (max 10MB)
+    function isValidFileSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Validate content type for documents
+    function isValidDocumentType() {
+      return request.resource.contentType.matches('application/pdf')
+        || request.resource.contentType.matches('image/.*')
+        || request.resource.contentType.matches('application/msword')
+        || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    // Validate content type for images
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // ============================================
+    // APPLICATION DOCUMENTS
+    // Path: applications/{applicationId}/documents/{documentId}
+    // ============================================
+    match /applications/{applicationId}/documents/{documentId} {
+      // Applicants can read their own documents
+      // Admins can read any documents
+      allow read: if isAuthenticated();
+
+      // Applicants can upload documents to their applications
+      // Must be valid file type and size
+      allow create: if isAuthenticated()
+        && isValidFileSize()
+        && isValidDocumentType();
+
+      // Only allow delete by admins or the uploader
+      allow delete: if isAdmin();
+
+      // Documents cannot be updated (upload new version instead)
+      allow update: if false;
+    }
+
+    // ============================================
+    // USER PROFILE IMAGES
+    // Path: users/{userId}/profile/{filename}
+    // ============================================
+    match /users/{userId}/profile/{filename} {
+      // Users can read their own profile images
+      // Admins can read any profile images
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can upload their own profile images
+      allow create, update: if isOwner(userId)
+        && isValidFileSize()
+        && isValidImageType();
+
+      // Users can delete their own profile images
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ============================================
+    // MASJID ASSETS
+    // Path: masjids/{masjidId}/assets/{filename}
+    // ============================================
+    match /masjids/{masjidId}/assets/{filename} {
+      // Anyone authenticated can read masjid assets (logos, etc.)
+      allow read: if isAuthenticated();
+
+      // Only super admins can upload masjid assets
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // DEFAULT: DENY ALL
+    // ============================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

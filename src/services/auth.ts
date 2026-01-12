@@ -152,3 +152,14 @@ export async function getIdTokenResult() {
   }
   return null;
 }
+
+/**
+ * Force refresh the ID token (call after role changes)
+ */
+export async function refreshIdToken(): Promise<string | null> {
+  const user = firebaseAuth.currentUser;
+  if (user) {
+    return user.getIdToken(true); // Force refresh
+  }
+  return null;
+}

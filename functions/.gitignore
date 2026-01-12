@@ -1,0 +1,26 @@
+# Compiled JavaScript files
+lib/
+
+# Node modules
+node_modules/
+
+# Coverage directory
+coverage/
+
+# Local secrets
+.secret.*
+*.local
+
+# IDE
+.idea/
+.vscode/
+
+# Firebase
+.firebase/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
