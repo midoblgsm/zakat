@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
-import { auth, db, COLLECTIONS } from "../config";
+import { auth, db, COLLECTIONS, CORS_ORIGINS } from "../config";
 import { SetUserRoleRequest, CustomClaims, UserRole } from "../types";
 import { isValidRole, hasPermission } from "../utils/validation";
 
@@ -9,7 +9,7 @@ import { isValidRole, hasPermission } from "../utils/validation";
  * Can only be called by super_admin or zakat_admin (for their masjid only)
  */
 export const setUserRole = onCall<SetUserRoleRequest>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     // Verify caller is authenticated
     if (!request.auth) {
@@ -123,7 +123,7 @@ export const setUserRole = onCall<SetUserRoleRequest>(
  * Can be called by the user themselves or by admins
  */
 export const getUserClaims = onCall<{ userId?: string }>(
-  { cors: true },
+  { cors: CORS_ORIGINS },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");

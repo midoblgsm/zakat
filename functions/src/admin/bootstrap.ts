@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
-import { auth, db, COLLECTIONS } from "../config";
+import { auth, db, COLLECTIONS, CORS_ORIGINS } from "../config";
 import { isValidEmail, isValidPhone, sanitizeString } from "../utils/validation";
 import { Address, CustomClaims } from "../types";
 
@@ -27,8 +27,7 @@ interface BootstrapSuperAdminRequest {
  */
 export const bootstrapSuperAdmin = onCall<BootstrapSuperAdminRequest>(
   {
-    cors: true,
-    // No auth required - this is the bootstrap function
+    cors: CORS_ORIGINS,
   },
   async (request) => {
     const { email, password, firstName, lastName, phone, bootstrapKey } = request.data;
