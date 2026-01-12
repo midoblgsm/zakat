@@ -15,6 +15,7 @@ import { ApplicantDashboard } from './pages/applicant/ApplicantDashboard';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { BootstrapPage } from './pages/admin/BootstrapPage';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from './pages/super-admin/SuperAdminDashboard';
@@ -32,6 +33,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/bootstrap" element={<BootstrapPage />} />
 
         {/* Applicant routes */}
         <Route
