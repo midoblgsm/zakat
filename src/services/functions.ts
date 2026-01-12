@@ -164,3 +164,37 @@ export async function getUser(
   const result = await callable({ userId });
   return result.data;
 }
+
+/**
+ * Bootstrap super admin request
+ */
+export interface BootstrapSuperAdminRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  bootstrapKey: string;
+}
+
+type BootstrapResponse = FunctionResponse<{
+  userId: string;
+  email: string;
+  role: 'super_admin';
+  message: string;
+}>;
+
+/**
+ * Bootstrap the first super admin (one-time use)
+ * Only works if no super admin exists in the system
+ */
+export async function bootstrapSuperAdmin(
+  request: BootstrapSuperAdminRequest
+): Promise<BootstrapResponse> {
+  const callable = httpsCallable<BootstrapSuperAdminRequest, BootstrapResponse>(
+    firebaseFunctions,
+    'bootstrapSuperAdmin'
+  );
+  const result = await callable(request);
+  return result.data;
+}
