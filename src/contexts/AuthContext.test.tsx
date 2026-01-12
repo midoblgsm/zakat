@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import { waitFor } from '@testing-library/dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import * as authService from '@/services/auth';
 
@@ -14,6 +15,7 @@ vi.mock('@/services/auth', () => ({
   resetPassword: vi.fn(),
   resendVerificationEmail: vi.fn(),
   getIdTokenResult: vi.fn(),
+  refreshIdToken: vi.fn(),
 }));
 
 describe('AuthContext', () => {

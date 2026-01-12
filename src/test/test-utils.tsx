@@ -1,4 +1,5 @@
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, renderHook, act } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/dom';
 import { ReactElement, ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
@@ -22,4 +23,4 @@ function customRender(
 }
 
 export * from '@testing-library/react';
-export { customRender as render, userEvent };
+export { customRender as render, userEvent, screen, waitFor, renderHook, act };

@@ -15,7 +15,10 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:rules": "vitest run tests/firestore.rules.test.ts",
+    "emulators": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export ./emulator-data"
   },
   "dependencies": {
     "firebase": "^11.0.0",
@@ -29,6 +32,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@eslint/js": "^9.17.0",

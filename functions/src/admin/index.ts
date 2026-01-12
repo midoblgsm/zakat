@@ -1,0 +1,1 @@
+export { bootstrapSuperAdmin } from "./bootstrap";

@@ -18,13 +18,23 @@ import {
   resetPassword,
   resendVerificationEmail,
   getIdTokenResult,
+  refreshIdToken,
 } from '@/services/auth';
 import type { CreateUserInput } from '@/types';
+
+/**
+ * Custom claims structure from Firebase Auth
+ */
+export interface CustomClaims {
+  role?: UserRole;
+  masjidId?: string;
+}
 
 interface AuthContextValue {
   // State
   user: AuthUser | null;
   profile: User | null;
+  claims: CustomClaims | null;
   loading: boolean;
   error: string | null;
 
@@ -34,11 +44,13 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   resendVerification: () => Promise<void>;
+  refreshClaims: () => Promise<void>;
 
   // Helpers
   isAuthenticated: boolean;
   isEmailVerified: boolean;
   userRole: UserRole | null;
+  userMasjidId: string | null;
   clearError: () => void;
 }
 
@@ -51,8 +63,23 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
+  const [claims, setClaims] = useState<CustomClaims | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Function to load claims from token
+  const loadClaims = useCallback(async (): Promise<CustomClaims | null> => {
+    const tokenResult = await getIdTokenResult();
+    if (tokenResult?.claims) {
+      const newClaims: CustomClaims = {
+        role: tokenResult.claims.role as UserRole | undefined,
+        masjidId: tokenResult.claims.masjidId as string | undefined,
+      };
+      setClaims(newClaims);
+      return newClaims;
+    }
+    return null;
+  }, []);
 
   // Subscribe to auth state changes
   useEffect(() => {
@@ -67,17 +94,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setProfile(userProfile);
 
           // Get custom claims for role
-          const tokenResult = await getIdTokenResult();
-          if (tokenResult?.claims?.role && userProfile) {
+          const loadedClaims = await loadClaims();
+          if (loadedClaims?.role && userProfile) {
             // Update profile with role from claims if different
-            const claimRole = tokenResult.claims.role as UserRole;
-            if (claimRole !== userProfile.role) {
-              setProfile({ ...userProfile, role: claimRole });
+            if (loadedClaims.role !== userProfile.role) {
+              setProfile({ ...userProfile, role: loadedClaims.role });
             }
           }
         } else {
           setUser(null);
           setProfile(null);
+          setClaims(null);
         }
       } catch (err) {
         console.error('Error in auth state change:', err);
@@ -88,7 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loadClaims]);
 
   const login = useCallback(async (email: string, password: string) => {
     setError(null);
@@ -155,9 +182,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
   }, []);
 
+  // Refresh claims (call after role changes)
+  const refreshClaims = useCallback(async () => {
+    try {
+      // Force refresh the token to get updated claims
+      await refreshIdToken();
+      const newClaims = await loadClaims();
+
+      // Update profile if role changed
+      if (newClaims?.role && profile && newClaims.role !== profile.role) {
+        // Refetch profile to get updated data
+        const userProfile = await getUserProfile(profile.id);
+        if (userProfile) {
+          setProfile({ ...userProfile, role: newClaims.role });
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing claims:', err);
+      setError('Failed to refresh user claims');
+    }
+  }, [loadClaims, profile]);
+
   const value: AuthContextValue = {
     user,
     profile,
+    claims,
     loading,
     error,
     login,
@@ -165,9 +214,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     sendPasswordReset,
     resendVerification,
+    refreshClaims,
     isAuthenticated: !!user,
     isEmailVerified: user?.emailVerified ?? false,
-    userRole: profile?.role ?? null,
+    userRole: claims?.role ?? profile?.role ?? null,
+    userMasjidId: claims?.masjidId ?? null,
     clearError,
   };
 
