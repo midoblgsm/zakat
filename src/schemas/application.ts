@@ -117,10 +117,22 @@ export type HouseholdFormData = z.infer<typeof householdSchema>;
 // ============================================================
 // Step 4: Financial Assets Schema
 // ============================================================
+
+// Helper to preprocess NaN values (from empty number inputs) to 0
+const nanToZero = z.preprocess(
+  (val) => (typeof val === 'number' && Number.isNaN(val) ? 0 : val),
+  z.number({ invalid_type_error: 'Value must be a number' }).min(0, 'Value cannot be negative')
+);
+
+// Helper for optional number fields - converts NaN to undefined
+const nanToUndefined = (schema: z.ZodNumber) =>
+  z.preprocess(
+    (val) => (typeof val === 'number' && Number.isNaN(val) ? undefined : val),
+    schema.optional()
+  );
+
 export const assetItemSchema = z.object({
-  value: z
-    .number({ invalid_type_error: 'Value must be a number' })
-    .min(0, 'Value cannot be negative'),
+  value: nanToZero,
   description: z.string().max(500, 'Description too long').optional(),
 });
 
@@ -131,12 +143,8 @@ export const assetsSchema = z.object({
   business: assetItemSchema.optional(),
   hasCars: z.boolean(),
   cars: assetItemSchema.optional(),
-  cashOnHand: z
-    .number({ invalid_type_error: 'Amount must be a number' })
-    .min(0, 'Amount cannot be negative'),
-  cashInBank: z
-    .number({ invalid_type_error: 'Amount must be a number' })
-    .min(0, 'Amount cannot be negative'),
+  cashOnHand: nanToZero,
+  cashInBank: nanToZero,
   otherAssets: z.array(assetItemSchema),
 }).refine(
   (data) => {
@@ -179,9 +187,7 @@ export type AssetsFormData = z.infer<typeof assetsSchema>;
 // Step 5: Income & Debts Schema
 // ============================================================
 export const debtItemSchema = z.object({
-  amount: z
-    .number({ required_error: 'Amount is required', invalid_type_error: 'Amount must be a number' })
-    .min(0, 'Amount cannot be negative'),
+  amount: nanToZero,
   lender: z
     .string()
     .min(1, 'Lender name is required')
@@ -200,18 +206,14 @@ export const expenseItemSchema = z.object({
     .string()
     .min(1, 'Category is required')
     .max(50, 'Category name too long'),
-  amount: z
-    .number({ required_error: 'Amount is required', invalid_type_error: 'Amount must be a number' })
-    .min(0, 'Amount cannot be negative'),
+  amount: nanToZero,
   frequency: z.enum(['weekly', 'monthly', 'quarterly', 'semester'], {
     required_error: 'Frequency is required',
   }),
 });
 
 export const incomeDebtsSchema = z.object({
-  monthlyIncome: z
-    .number({ required_error: 'Monthly income is required', invalid_type_error: 'Income must be a number' })
-    .min(0, 'Income cannot be negative'),
+  monthlyIncome: nanToZero,
   incomeSource: z.string().max(200, 'Description too long').optional(),
   receivesGovernmentAid: z.boolean(),
   governmentAidDetails: z.string().max(500, 'Details too long').optional(),
@@ -242,10 +244,7 @@ export const circumstancesSchema = z.object({
     required_error: 'Please select residence type',
   }),
   residenceDetails: z.string().max(500, 'Details too long').optional(),
-  rentAmount: z
-    .number({ invalid_type_error: 'Rent must be a number' })
-    .min(0, 'Rent cannot be negative')
-    .optional(),
+  rentAmount: nanToUndefined(z.number({ invalid_type_error: 'Rent must be a number' }).min(0, 'Rent cannot be negative')),
   sharesRent: z.boolean(),
   rentShareDetails: z.string().max(300, 'Details too long').optional(),
 
@@ -316,15 +315,17 @@ export const zakatRequestSchema = z.object({
   assistanceType: z.enum(['monthly', 'one_time'], {
     required_error: 'Please select assistance type',
   }),
-  monthlyDuration: z
-    .number({ invalid_type_error: 'Duration must be a number' })
-    .min(1, 'Duration must be at least 1 month')
-    .max(12, 'Duration cannot exceed 12 months')
-    .optional(),
-  amountRequested: z
-    .number({ required_error: 'Amount is required', invalid_type_error: 'Amount must be a number' })
-    .min(1, 'Amount must be greater than 0')
-    .max(100000, 'Amount seems too high, please verify'),
+  monthlyDuration: nanToUndefined(
+    z.number({ invalid_type_error: 'Duration must be a number' })
+      .min(1, 'Duration must be at least 1 month')
+      .max(12, 'Duration cannot exceed 12 months')
+  ),
+  amountRequested: z.preprocess(
+    (val) => (typeof val === 'number' && Number.isNaN(val) ? 0 : val),
+    z.number({ required_error: 'Amount is required', invalid_type_error: 'Amount must be a number' })
+      .min(1, 'Amount must be greater than 0')
+      .max(100000, 'Amount seems too high, please verify')
+  ),
 }).refine(
   (data) => {
     if (data.assistanceType === 'monthly' && !data.monthlyDuration) {

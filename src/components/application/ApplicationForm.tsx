@@ -256,14 +256,29 @@ export function ApplicationForm({ applicationId: propApplicationId }: Applicatio
 
       return true;
     } catch (error) {
+      // Clear existing errors for this step first
+      methods.clearErrors(stepPrefix as keyof ApplicationFormData);
+
       // Set form errors from Zod validation
       if (error instanceof ZodError) {
         error.errors.forEach((err) => {
-          const fieldPath = `${stepPrefix}.${err.path.join('.')}` as keyof ApplicationFormData;
-          methods.setError(fieldPath, {
+          // Handle empty path (root-level errors) and nested paths
+          const pathStr = err.path.join('.');
+          const fieldPath = pathStr
+            ? `${stepPrefix}.${pathStr}`
+            : stepPrefix;
+
+          methods.setError(fieldPath as Parameters<typeof methods.setError>[0], {
             type: 'manual',
             message: err.message,
           });
+        });
+      } else {
+        // Handle unexpected errors
+        console.error('Validation error:', error);
+        methods.setError(stepPrefix as Parameters<typeof methods.setError>[0], {
+          type: 'manual',
+          message: 'Validation failed. Please check your inputs.',
         });
       }
       return false;
