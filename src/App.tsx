@@ -43,7 +43,7 @@ function App() {
 
         {/* Applicant routes */}
         <Route
-          path="/applicant"
+          path="/applicant/*"
           element={
             <ProtectedRoute allowedRoles={['applicant']}>
               <RootLayout />
@@ -58,7 +58,7 @@ function App() {
 
         {/* Admin routes */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <ProtectedRoute allowedRoles={['zakat_admin']}>
               <RootLayout />
@@ -73,7 +73,7 @@ function App() {
 
         {/* Super Admin routes */}
         <Route
-          path="/super-admin"
+          path="/super-admin/*"
           element={
             <ProtectedRoute allowedRoles={['super_admin']}>
               <RootLayout />
