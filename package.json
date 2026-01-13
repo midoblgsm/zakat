@@ -21,6 +21,7 @@
     "emulators:export": "firebase emulators:export ./emulator-data"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.9.1",
     "clsx": "^2.1.1",
