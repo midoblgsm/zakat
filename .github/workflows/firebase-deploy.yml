@@ -54,7 +54,7 @@ jobs:
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only hosting,functions,firestore:rules,storage:rules
+          args: deploy --only hosting,functions,firestore:rules,firestore:indexes,storage:rules
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PROJECT_ID: zakat-a63f4
