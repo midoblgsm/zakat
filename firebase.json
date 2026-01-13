@@ -23,7 +23,7 @@
   "storage": [
     {
       "rules": "storage.rules",
-      "bucket": "zakat-a63f4.appspot.com"
+      "target": "main"
     }
   ],
   "emulators": {
