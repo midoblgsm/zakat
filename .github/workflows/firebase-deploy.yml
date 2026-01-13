@@ -137,7 +137,7 @@ jobs:
       - name: Deploy Storage Rules
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only storage:rules
+          args: deploy --only storage:main
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PROJECT_ID: zakat-a63f4
