@@ -1,0 +1,699 @@
+/**
+ * Application Management Cloud Functions
+ *
+ * Functions for handling zakat applications:
+ * - submitApplication: Submit a draft application
+ * - assignApplication: Claim/assign application to admin
+ * - releaseApplication: Release application back to pool
+ * - changeApplicationStatus: Update application status
+ * - getApplication: Get single application
+ * - listApplications: List applications with filters
+ */
+
+import {
+  onCall,
+  HttpsError,
+  CallableRequest,
+} from "firebase-functions/v2/https";
+import { getFirestore, Timestamp, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import {
+  ApplicationStatus,
+  SubmitApplicationRequest,
+  AssignApplicationRequest,
+  ReleaseApplicationRequest,
+  ChangeStatusRequest,
+  ListApplicationsRequest,
+  ZakatApplication,
+  ApplicationHistoryEntry,
+  VALID_STATUS_TRANSITIONS,
+  FunctionResponse,
+  CustomClaims,
+} from "../types";
+
+const db = getFirestore();
+
+/**
+ * Generate unique application number
+ */
+async function generateApplicationNumber(): Promise<string> {
+  const counterRef = db.collection("counters").doc("applications");
+
+  const newNumber = await db.runTransaction(async (transaction) => {
+    const counterDoc = await transaction.get(counterRef);
+
+    let currentCount = 1;
+    if (counterDoc.exists) {
+      currentCount = (counterDoc.data()?.count || 0) + 1;
+    }
+
+    transaction.set(counterRef, { count: currentCount }, { merge: true });
+    return currentCount;
+  });
+
+  // Format: ZKT-00001234
+  return `ZKT-${String(newNumber).padStart(8, "0")}`;
+}
+
+/**
+ * Create history entry for an application
+ */
+async function createHistoryEntry(
+  applicationId: string,
+  entry: Omit<ApplicationHistoryEntry, "id" | "createdAt">
+): Promise<void> {
+  const historyRef = db
+    .collection("applications")
+    .doc(applicationId)
+    .collection("history")
+    .doc();
+
+  await historyRef.set({
+    ...entry,
+    id: historyRef.id,
+    createdAt: Timestamp.now(),
+  });
+}
+
+/**
+ * Get user info for history entries
+ */
+async function getUserInfo(
+  userId: string
+): Promise<{ name: string; role: string; masjidId?: string }> {
+  const userDoc = await db.collection("users").doc(userId).get();
+  const userData = userDoc.data();
+
+  if (!userData) {
+    return { name: "Unknown User", role: "unknown" };
+  }
+
+  return {
+    name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.email,
+    role: userData.role,
+    masjidId: userData.masjidId,
+  };
+}
+
+/**
+ * Validate that user has admin permissions
+ */
+function validateAdmin(claims: CustomClaims | undefined): void {
+  if (!claims?.role || !["zakat_admin", "super_admin"].includes(claims.role)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admins can perform this action"
+    );
+  }
+}
+
+/**
+ * Validate status transition
+ */
+function validateStatusTransition(
+  currentStatus: ApplicationStatus,
+  newStatus: ApplicationStatus
+): void {
+  const validTransitions = VALID_STATUS_TRANSITIONS[currentStatus];
+  if (!validTransitions?.includes(newStatus)) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Invalid status transition from ${currentStatus} to ${newStatus}`
+    );
+  }
+}
+
+// ============================================
+// SUBMIT APPLICATION
+// ============================================
+
+/**
+ * Submit a draft application
+ * - Generates application number
+ * - Updates status to submitted
+ * - Creates history entry
+ * - Notifies admins of new application
+ */
+export const submitApplication = onCall(
+  async (
+    request: CallableRequest<SubmitApplicationRequest>
+  ): Promise<FunctionResponse<{ applicationNumber: string }>> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { applicationId } = data;
+
+    if (!applicationId) {
+      throw new HttpsError("invalid-argument", "Application ID is required");
+    }
+
+    const applicationRef = db.collection("applications").doc(applicationId);
+    const applicationDoc = await applicationRef.get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+
+    // Verify ownership
+    if (application.applicantId !== auth.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "You can only submit your own applications"
+      );
+    }
+
+    // Verify status is draft
+    if (application.status !== "draft") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Only draft applications can be submitted"
+      );
+    }
+
+    // Generate application number
+    const applicationNumber = await generateApplicationNumber();
+
+    // Update application
+    await applicationRef.update({
+      applicationNumber,
+      status: "submitted",
+      submittedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    // Create history entry
+    const userInfo = await getUserInfo(auth.uid);
+    await createHistoryEntry(applicationId, {
+      action: "submitted",
+      performedBy: auth.uid,
+      performedByName: userInfo.name,
+      performedByRole: userInfo.role,
+      previousStatus: "draft",
+      newStatus: "submitted",
+      details: `Application ${applicationNumber} submitted`,
+    });
+
+    // Create notification for applicant
+    await db.collection("notifications").add({
+      userId: auth.uid,
+      type: "application_submitted",
+      title: "Application Submitted",
+      message: `Your application ${applicationNumber} has been submitted and is now in the review queue.`,
+      applicationId,
+      read: false,
+      createdAt: Timestamp.now(),
+    });
+
+    return {
+      success: true,
+      data: { applicationNumber },
+    };
+  }
+);
+
+// ============================================
+// ASSIGN APPLICATION
+// ============================================
+
+/**
+ * Assign an application to an admin
+ * - Validates application is in pool or reassignable
+ * - Updates assignedTo, assignedToMasjid
+ * - Creates history entry
+ * - Notifies relevant parties
+ */
+export const assignApplication = onCall(
+  async (
+    request: CallableRequest<AssignApplicationRequest>
+  ): Promise<FunctionResponse<{ assignedTo: string }>> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const claims = auth.token as unknown as CustomClaims;
+    validateAdmin(claims);
+
+    const { applicationId, assignToUserId } = data;
+    const targetUserId = assignToUserId || auth.uid;
+
+    if (!applicationId) {
+      throw new HttpsError("invalid-argument", "Application ID is required");
+    }
+
+    const applicationRef = db.collection("applications").doc(applicationId);
+    const applicationDoc = await applicationRef.get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+
+    // Check if application can be assigned
+    if (application.status !== "submitted") {
+      // Super admins can reassign at any time except closed/disbursed
+      if (
+        claims.role !== "super_admin" ||
+        ["closed", "disbursed"].includes(application.status)
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Application cannot be assigned in current status"
+        );
+      }
+    }
+
+    // Get target user's masjid
+    let targetMasjidId = claims.masjidId;
+    if (targetUserId !== auth.uid) {
+      // Super admin assigning to someone else
+      if (claims.role !== "super_admin") {
+        throw new HttpsError(
+          "permission-denied",
+          "Only super admins can assign to other users"
+        );
+      }
+
+      const targetUserClaims = await getAuth().getUser(targetUserId);
+      targetMasjidId = (targetUserClaims.customClaims as CustomClaims)?.masjidId;
+    }
+
+    const previousAssignee = application.assignedTo;
+
+    // Update application
+    const newStatus: ApplicationStatus =
+      application.status === "submitted" ? "under_review" : application.status;
+
+    await applicationRef.update({
+      assignedTo: targetUserId,
+      assignedToMasjid: targetMasjidId || null,
+      assignedAt: Timestamp.now(),
+      status: newStatus,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Create history entry
+    const userInfo = await getUserInfo(auth.uid);
+    const targetUserInfo = await getUserInfo(targetUserId);
+
+    await createHistoryEntry(applicationId, {
+      action: "assigned",
+      performedBy: auth.uid,
+      performedByName: userInfo.name,
+      performedByRole: userInfo.role,
+      performedByMasjid: userInfo.masjidId,
+      previousAssignee,
+      newAssignee: targetUserId,
+      previousStatus: application.status,
+      newStatus,
+      details:
+        targetUserId === auth.uid
+          ? `Application claimed by ${userInfo.name}`
+          : `Application assigned to ${targetUserInfo.name} by ${userInfo.name}`,
+    });
+
+    // Notify assignee if different from requester
+    if (targetUserId !== auth.uid) {
+      await db.collection("notifications").add({
+        userId: targetUserId,
+        type: "application_assigned",
+        title: "Application Assigned",
+        message: `Application ${application.applicationNumber} has been assigned to you.`,
+        applicationId,
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+    }
+
+    // Notify applicant of status change
+    await db.collection("notifications").add({
+      userId: application.applicantId,
+      type: "status_update",
+      title: "Application Under Review",
+      message: `Your application ${application.applicationNumber} is now being reviewed.`,
+      applicationId,
+      read: false,
+      createdAt: Timestamp.now(),
+    });
+
+    return {
+      success: true,
+      data: { assignedTo: targetUserId },
+    };
+  }
+);
+
+// ============================================
+// RELEASE APPLICATION
+// ============================================
+
+/**
+ * Release an application back to the pool
+ * - Clears assignment
+ * - Updates status back to submitted
+ * - Creates history entry
+ */
+export const releaseApplication = onCall(
+  async (
+    request: CallableRequest<ReleaseApplicationRequest>
+  ): Promise<FunctionResponse> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const claims = auth.token as unknown as CustomClaims;
+    validateAdmin(claims);
+
+    const { applicationId, reason } = data;
+
+    if (!applicationId) {
+      throw new HttpsError("invalid-argument", "Application ID is required");
+    }
+
+    const applicationRef = db.collection("applications").doc(applicationId);
+    const applicationDoc = await applicationRef.get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+
+    // Check permissions
+    if (
+      claims.role !== "super_admin" &&
+      application.assignedTo !== auth.uid
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "You can only release applications assigned to you"
+      );
+    }
+
+    // Check if application can be released
+    if (
+      !["under_review", "pending_documents", "pending_verification"].includes(
+        application.status
+      )
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Application cannot be released in current status"
+      );
+    }
+
+    const previousAssignee = application.assignedTo;
+
+    // Update application
+    await applicationRef.update({
+      assignedTo: FieldValue.delete(),
+      assignedToMasjid: FieldValue.delete(),
+      assignedAt: FieldValue.delete(),
+      status: "submitted",
+      updatedAt: Timestamp.now(),
+    });
+
+    // Create history entry
+    const userInfo = await getUserInfo(auth.uid);
+
+    await createHistoryEntry(applicationId, {
+      action: "released",
+      performedBy: auth.uid,
+      performedByName: userInfo.name,
+      performedByRole: userInfo.role,
+      performedByMasjid: userInfo.masjidId,
+      previousAssignee,
+      previousStatus: application.status,
+      newStatus: "submitted",
+      details: reason
+        ? `Application released to pool: ${reason}`
+        : "Application released to pool",
+      metadata: reason ? { reason } : undefined,
+    });
+
+    return { success: true };
+  }
+);
+
+// ============================================
+// CHANGE APPLICATION STATUS
+// ============================================
+
+/**
+ * Change application status with validation
+ * - Validates status transition
+ * - Creates history entry
+ * - Sends notifications
+ */
+export const changeApplicationStatus = onCall(
+  async (
+    request: CallableRequest<ChangeStatusRequest>
+  ): Promise<FunctionResponse<{ newStatus: ApplicationStatus }>> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const claims = auth.token as unknown as CustomClaims;
+    validateAdmin(claims);
+
+    const { applicationId, newStatus, reason, metadata } = data;
+
+    if (!applicationId || !newStatus) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Application ID and new status are required"
+      );
+    }
+
+    const applicationRef = db.collection("applications").doc(applicationId);
+    const applicationDoc = await applicationRef.get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+
+    // Check permissions
+    if (
+      claims.role !== "super_admin" &&
+      application.assignedTo !== auth.uid &&
+      application.assignedToMasjid !== claims.masjidId
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "You don't have permission to change this application's status"
+      );
+    }
+
+    // Validate transition
+    validateStatusTransition(application.status, newStatus);
+
+    const previousStatus = application.status;
+
+    // Update application
+    await applicationRef.update({
+      status: newStatus,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Create history entry
+    const userInfo = await getUserInfo(auth.uid);
+
+    await createHistoryEntry(applicationId, {
+      action: "status_changed",
+      performedBy: auth.uid,
+      performedByName: userInfo.name,
+      performedByRole: userInfo.role,
+      performedByMasjid: userInfo.masjidId,
+      previousStatus,
+      newStatus,
+      details: reason
+        ? `Status changed from ${previousStatus} to ${newStatus}: ${reason}`
+        : `Status changed from ${previousStatus} to ${newStatus}`,
+      metadata,
+    });
+
+    // Notify applicant
+    const statusMessages: Record<ApplicationStatus, string> = {
+      draft: "",
+      submitted: "Your application has been submitted.",
+      under_review: "Your application is now being reviewed.",
+      pending_documents: "Additional documents are needed for your application.",
+      pending_verification: "Your application documents are being verified.",
+      approved: "Congratulations! Your application has been approved.",
+      rejected: "We regret to inform you that your application has been declined.",
+      disbursed: "Funds for your application have been disbursed.",
+      closed: "Your application has been closed.",
+    };
+
+    await db.collection("notifications").add({
+      userId: application.applicantId,
+      type: "status_update",
+      title: `Application ${newStatus.replace("_", " ").toUpperCase()}`,
+      message: statusMessages[newStatus] || `Application status: ${newStatus}`,
+      applicationId,
+      read: false,
+      createdAt: Timestamp.now(),
+    });
+
+    return {
+      success: true,
+      data: { newStatus },
+    };
+  }
+);
+
+// ============================================
+// GET APPLICATION
+// ============================================
+
+/**
+ * Get a single application with permissions check
+ */
+export const getApplication = onCall(
+  async (
+    request: CallableRequest<{ applicationId: string }>
+  ): Promise<FunctionResponse<ZakatApplication>> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { applicationId } = data;
+
+    if (!applicationId) {
+      throw new HttpsError("invalid-argument", "Application ID is required");
+    }
+
+    const applicationDoc = await db
+      .collection("applications")
+      .doc(applicationId)
+      .get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+    const claims = auth.token as unknown as CustomClaims;
+
+    // Check permissions
+    const isOwner = application.applicantId === auth.uid;
+    const isSuperAdmin = claims.role === "super_admin";
+    const isAssignedAdmin =
+      claims.role === "zakat_admin" &&
+      (application.assignedTo === auth.uid ||
+        application.assignedToMasjid === claims.masjidId);
+    const isPoolApplication =
+      claims.role === "zakat_admin" &&
+      application.status === "submitted" &&
+      !application.assignedTo;
+
+    if (!isOwner && !isSuperAdmin && !isAssignedAdmin && !isPoolApplication) {
+      throw new HttpsError(
+        "permission-denied",
+        "You don't have permission to view this application"
+      );
+    }
+
+    return {
+      success: true,
+      data: application,
+    };
+  }
+);
+
+// ============================================
+// LIST APPLICATIONS
+// ============================================
+
+/**
+ * List applications with filters
+ */
+export const listApplications = onCall(
+  async (
+    request: CallableRequest<ListApplicationsRequest>
+  ): Promise<FunctionResponse<ZakatApplication[]>> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const claims = auth.token as unknown as CustomClaims;
+    const {
+      status,
+      masjidId,
+      assignedTo,
+      applicantId,
+      limit = 50,
+      poolOnly,
+    } = data;
+
+    let query = db.collection("applications").orderBy("createdAt", "desc");
+
+    // Apply filters based on role and request
+    if (claims.role === "applicant") {
+      // Applicants can only see their own applications
+      query = query.where("applicantId", "==", auth.uid);
+    } else if (claims.role === "zakat_admin") {
+      if (poolOnly) {
+        // Show unassigned submitted applications
+        query = query
+          .where("status", "==", "submitted")
+          .where("assignedTo", "==", null);
+      } else if (assignedTo) {
+        query = query.where("assignedTo", "==", assignedTo);
+      } else if (masjidId) {
+        query = query.where("assignedToMasjid", "==", masjidId);
+      } else {
+        // Default: show their masjid's applications
+        query = query.where("assignedToMasjid", "==", claims.masjidId);
+      }
+    } else if (claims.role === "super_admin") {
+      // Super admins can filter by anything
+      if (poolOnly) {
+        query = query
+          .where("status", "==", "submitted")
+          .where("assignedTo", "==", null);
+      } else if (applicantId) {
+        query = query.where("applicantId", "==", applicantId);
+      } else if (assignedTo) {
+        query = query.where("assignedTo", "==", assignedTo);
+      } else if (masjidId) {
+        query = query.where("assignedToMasjid", "==", masjidId);
+      }
+    }
+
+    // Additional status filter
+    if (status && !poolOnly) {
+      query = query.where("status", "==", status);
+    }
+
+    // Apply limit
+    query = query.limit(limit);
+
+    const snapshot = await query.get();
+    const applications = snapshot.docs.map(
+      (doc) => doc.data() as ZakatApplication
+    );
+
+    return {
+      success: true,
+      data: applications,
+    };
+  }
+);

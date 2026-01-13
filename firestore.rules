@@ -56,6 +56,42 @@ service cloud.firestore {
       return email is string && email.matches('.*@.*\\..*');
     }
 
+    // Validate phone format (basic - allows various formats)
+    function isValidPhone(phone) {
+      return phone is string && phone.size() >= 10;
+    }
+
+    // Validate application status value
+    function isValidApplicationStatus(status) {
+      return status in ['draft', 'submitted', 'under_review', 'pending_documents',
+                        'pending_verification', 'approved', 'rejected', 'disbursed', 'closed'];
+    }
+
+    // Validate application status transition
+    function isValidStatusTransition(oldStatus, newStatus) {
+      // Define valid transitions
+      return (oldStatus == 'draft' && newStatus in ['submitted']) ||
+             (oldStatus == 'submitted' && newStatus in ['under_review', 'rejected']) ||
+             (oldStatus == 'under_review' && newStatus in ['pending_documents', 'pending_verification', 'approved', 'rejected']) ||
+             (oldStatus == 'pending_documents' && newStatus in ['under_review', 'rejected', 'closed']) ||
+             (oldStatus == 'pending_verification' && newStatus in ['approved', 'rejected', 'under_review']) ||
+             (oldStatus == 'approved' && newStatus in ['disbursed', 'closed']) ||
+             (oldStatus == 'rejected' && newStatus in ['closed']) ||
+             (oldStatus == 'disbursed' && newStatus in ['closed']);
+    }
+
+    // Validate flag severity
+    function isValidFlagSeverity(severity) {
+      return severity in ['warning', 'blocked'];
+    }
+
+    // Validate notification type
+    function isValidNotificationType(type) {
+      return type in ['application_submitted', 'application_assigned', 'application_released',
+                      'status_update', 'document_requested', 'application_approved',
+                      'application_rejected', 'new_application_in_pool', 'system_announcement'];
+    }
+
     // ============================================
     // USERS COLLECTION
     // ============================================
@@ -115,40 +151,106 @@ service cloud.firestore {
         return resource.data;
       }
 
+      // Check if application is in the pool (submitted, not assigned)
+      function isInPool() {
+        return getApplication().status == 'submitted'
+          && (!('assignedTo' in resource.data) || resource.data.assignedTo == null || resource.data.assignedTo == '');
+      }
+
+      // Check if application is assigned to requesting admin
+      function isAssignedToMe() {
+        return getApplication().assignedTo == request.auth.uid;
+      }
+
       // Applicants can read their own applications
-      // Zakat admins can read applications for their masjid
-      // Super admins can read all applications
+      // Admins can read: applications in pool, applications assigned to their masjid, or all (super_admin)
+      // Note: Pool applications (submitted, unassigned) are readable by all admins
       allow read: if isOwner(getApplication().applicantId)
-        || isZakatAdminForMasjid(getApplication().masjidId)
+        || (isAdmin() && isInPool())
+        || isAssignedToMe()
+        || isZakatAdminForMasjid(getApplication().assignedToMasjid)
         || isSuperAdmin();
 
       // Applicants can create applications for themselves
       allow create: if isAuthenticated()
         && request.resource.data.applicantId == request.auth.uid
-        && request.resource.data.status == 'draft';
+        && request.resource.data.status == 'draft'
+        && isValidApplicationStatus(request.resource.data.status);
 
       // Applicants can update their own draft applications
-      // Admins can update applications in their masjid
+      // Applicants can submit their draft applications
+      // Admins can update applications assigned to them or their masjid
       allow update: if (isOwner(getApplication().applicantId)
-          && getApplication().status in ['draft', 'returned'])
-        || isZakatAdminForMasjid(getApplication().masjidId)
-        || isSuperAdmin();
+          && getApplication().status in ['draft', 'pending_documents']
+          && isValidApplicantUpdate())
+        || (isAdmin() && isValidAdminApplicationUpdate());
 
       // Only super admins can delete applications
       allow delete: if isSuperAdmin();
+
+      // Validate applicant update
+      function isValidApplicantUpdate() {
+        // Applicants can only update form fields and submit
+        // They cannot change: id, applicantId, assignedTo, adminNotes, resolution
+        let protectedFields = ['id', 'applicantId', 'applicationNumber', 'assignedTo',
+                               'assignedToMasjid', 'assignedAt', 'adminNotes', 'resolution', 'createdAt'];
+        let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+
+        // Check no protected fields are changed
+        let noProtectedChanges = !changedFields.hasAny(protectedFields);
+
+        // If status is changing, it must be from draft to submitted
+        let validStatusChange = !changedFields.hasAny(['status']) ||
+          (resource.data.status == 'draft' && request.resource.data.status == 'submitted');
+
+        return noProtectedChanges && validStatusChange;
+      }
+
+      // Validate admin update
+      function isValidAdminApplicationUpdate() {
+        // Super admins can update anything
+        if (isSuperAdmin()) {
+          return true;
+        }
+
+        // Zakat admins can update if assigned to them or their masjid
+        // Or if they are claiming from the pool
+        let isClaiming = isInPool() && request.resource.data.assignedTo == request.auth.uid;
+        let isAssignedOrMasjid = isAssignedToMe() || isZakatAdminForMasjid(getApplication().assignedToMasjid);
+
+        return isClaiming || isAssignedOrMasjid;
+      }
 
       // Application history subcollection
       match /history/{historyId} {
         // Same read permissions as parent application
         allow read: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
-          || isZakatAdminForMasjid(get(/databases/$(database)/documents/applications/$(applicationId)).data.masjidId)
+          || isAdmin()
           || isSuperAdmin();
 
-        // Only admins can create history entries
+        // Only admins can create history entries (or Cloud Functions via admin SDK)
+        allow create: if isAdmin()
+          && request.resource.data.performedBy == request.auth.uid;
+
+        // History entries cannot be updated or deleted (immutable audit trail)
+        allow update, delete: if false;
+      }
+
+      // Document requests subcollection
+      match /documentRequests/{requestId} {
+        // Same read permissions as parent
+        allow read: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
+          || isAdmin();
+
+        // Only admins can create document requests
         allow create: if isAdmin();
 
-        // History entries cannot be updated or deleted
-        allow update, delete: if false;
+        // Applicants can update (mark as fulfilled), admins can update
+        allow update: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
+          || isAdmin();
+
+        // Only super admins can delete
+        allow delete: if isSuperAdmin();
       }
     }
 
@@ -161,11 +263,13 @@ service cloud.firestore {
 
       // Only admins can create flags
       allow create: if isAdmin()
-        && request.resource.data.createdBy == request.auth.uid;
+        && request.resource.data.flaggedBy == request.auth.uid
+        && isValidFlagSeverity(request.resource.data.severity);
 
       // Only super admins or the flag creator can update
+      // Zakat admins can only resolve their own flags
       allow update: if isSuperAdmin()
-        || (isZakatAdmin() && resource.data.createdBy == request.auth.uid);
+        || (isZakatAdmin() && resource.data.flaggedBy == request.auth.uid);
 
       // Only super admins can delete flags
       allow delete: if isSuperAdmin();
@@ -210,6 +314,17 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isAdmin();
       allow write: if isSuperAdmin();
+    }
+
+    // ============================================
+    // COUNTERS COLLECTION (For application numbers)
+    // ============================================
+    match /counters/{counterId} {
+      // Only admins can read counters
+      allow read: if isAdmin();
+
+      // Only Cloud Functions can write (uses admin SDK)
+      allow create, update, delete: if false;
     }
 
     // ============================================

@@ -21,6 +21,11 @@ service firebase.storage {
       return request.auth.token.role;
     }
 
+    // Get user's masjid from custom claims
+    function getUserMasjid() {
+      return request.auth.token.masjidId;
+    }
+
     // Check if user is a super admin
     function isSuperAdmin() {
       return isAuthenticated() && getUserRole() == 'super_admin';
@@ -41,6 +46,11 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
 
+    // Validate file size for large documents (max 25MB)
+    function isValidLargeFileSize() {
+      return request.resource.size < 25 * 1024 * 1024;
+    }
+
     // Validate content type for documents
     function isValidDocumentType() {
       return request.resource.contentType.matches('application/pdf')
@@ -49,18 +59,25 @@ service firebase.storage {
         || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
-    // Validate content type for images
+    // Validate content type for images only
     function isValidImageType() {
       return request.resource.contentType.matches('image/.*');
     }
 
+    // Validate content type for ID documents (images and PDFs)
+    function isValidIdDocumentType() {
+      return request.resource.contentType.matches('application/pdf')
+        || request.resource.contentType.matches('image/.*');
+    }
+
     // ============================================
     // APPLICATION DOCUMENTS
-    // Path: applications/{applicationId}/documents/{documentId}
+    // Path: applications/{applicationId}/documents/{documentType}/{filename}
+    // Document types: photo_id, ssn_card, lease_agreement, proof_of_income, other
     // ============================================
-    match /applications/{applicationId}/documents/{documentId} {
-      // Applicants can read their own documents
-      // Admins can read any documents
+    match /applications/{applicationId}/documents/{documentType}/{filename} {
+      // Anyone authenticated can read application documents
+      // Firestore rules handle fine-grained access
       allow read: if isAuthenticated();
 
       // Applicants can upload documents to their applications
@@ -69,10 +86,27 @@ service firebase.storage {
         && isValidFileSize()
         && isValidDocumentType();
 
-      // Only allow delete by admins or the uploader
+      // Only admins can delete documents
       allow delete: if isAdmin();
 
-      // Documents cannot be updated (upload new version instead)
+      // Documents cannot be updated (upload new version with different filename)
+      allow update: if false;
+    }
+
+    // ============================================
+    // APPLICATION DOCUMENT REQUESTS
+    // Path: applications/{applicationId}/requested/{requestId}/{filename}
+    // For documents uploaded in response to admin requests
+    // ============================================
+    match /applications/{applicationId}/requested/{requestId}/{filename} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isValidFileSize()
+        && isValidDocumentType();
+
+      allow delete: if isAdmin();
+
       allow update: if false;
     }
 
@@ -95,15 +129,84 @@ service firebase.storage {
     }
 
     // ============================================
-    // MASJID ASSETS
-    // Path: masjids/{masjidId}/assets/{filename}
+    // USER ID DOCUMENTS (sensitive)
+    // Path: users/{userId}/id_documents/{filename}
+    // For storing verified ID documents separately
     // ============================================
-    match /masjids/{masjidId}/assets/{filename} {
+    match /users/{userId}/id_documents/{filename} {
+      // Only the owner and admins can read ID documents
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Users can upload their own ID documents
+      allow create: if isOwner(userId)
+        && isValidFileSize()
+        && isValidIdDocumentType();
+
+      // Only admins can delete ID documents (after verification)
+      allow delete: if isAdmin();
+
+      // ID documents cannot be updated once uploaded
+      allow update: if false;
+    }
+
+    // ============================================
+    // MASJID ASSETS
+    // Path: masjids/{masjidId}/assets/{assetType}/{filename}
+    // Asset types: logo, banner, documents
+    // ============================================
+    match /masjids/{masjidId}/assets/{assetType}/{filename} {
       // Anyone authenticated can read masjid assets (logos, etc.)
       allow read: if isAuthenticated();
 
       // Only super admins can upload masjid assets
       allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // MASJID DOCUMENTS (internal)
+    // Path: masjids/{masjidId}/documents/{filename}
+    // For internal masjid documents
+    // ============================================
+    match /masjids/{masjidId}/documents/{filename} {
+      // Only admins can read masjid documents
+      allow read: if isAdmin();
+
+      // Only super admins can manage masjid documents
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // SYSTEM ASSETS
+    // Path: system/{assetType}/{filename}
+    // For system-wide assets like email templates, etc.
+    // ============================================
+    match /system/{assetType}/{filename} {
+      // Anyone authenticated can read system assets
+      allow read: if isAuthenticated();
+
+      // Only super admins can manage system assets
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ============================================
+    // TEMP UPLOADS
+    // Path: temp/{userId}/{filename}
+    // For temporary uploads before processing
+    // Auto-cleanup via lifecycle rules
+    // ============================================
+    match /temp/{userId}/{filename} {
+      // Users can read their own temp files
+      allow read: if isOwner(userId);
+
+      // Users can upload temp files
+      allow create: if isOwner(userId)
+        && isValidLargeFileSize();
+
+      // Users can delete their own temp files
+      allow delete: if isOwner(userId);
+
+      // Temp files cannot be updated
+      allow update: if false;
     }
 
     // ============================================
