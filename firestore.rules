@@ -209,16 +209,12 @@ service cloud.firestore {
       // Validate admin update
       function isValidAdminApplicationUpdate() {
         // Super admins can update anything
-        if (isSuperAdmin()) {
-          return true;
-        }
-
         // Zakat admins can update if assigned to them or their masjid
         // Or if they are claiming from the pool
         let isClaiming = isInPool() && request.resource.data.assignedTo == request.auth.uid;
         let isAssignedOrMasjid = isAssignedToMe() || isZakatAdminForMasjid(getApplication().assignedToMasjid);
 
-        return isClaiming || isAssignedOrMasjid;
+        return isSuperAdmin() || isClaiming || isAssignedOrMasjid;
       }
 
       // Application history subcollection
