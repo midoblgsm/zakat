@@ -20,9 +20,12 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "storage": {
-    "rules": "storage.rules"
-  },
+  "storage": [
+    {
+      "rules": "storage.rules",
+      "bucket": "zakat-a63f4.appspot.com"
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099
