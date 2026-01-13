@@ -77,9 +77,7 @@ function Section({
 }) {
   return (
     <Card className="mb-6">
-      <CardHeader>
-        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-      </CardHeader>
+      <CardHeader title={title} />
       <CardContent>
         <dl>{children}</dl>
       </CardContent>

@@ -212,6 +212,30 @@ export async function deleteDraftApplication(
 }
 
 /**
+ * Convert Firestore DocumentFile to form data format
+ */
+function convertDocumentFile(doc: {
+  fileName: string;
+  storagePath: string;
+  uploadedAt: Timestamp;
+  verified: boolean;
+  verifiedBy?: string;
+  verifiedAt?: Timestamp;
+}): {
+  fileName: string;
+  storagePath: string;
+  uploadedAt: Date;
+  verified: boolean;
+} {
+  return {
+    fileName: doc.fileName,
+    storagePath: doc.storagePath,
+    uploadedAt: doc.uploadedAt?.toDate?.() || new Date(),
+    verified: doc.verified || false,
+  };
+}
+
+/**
  * Convert Firestore ZakatApplication to form data
  */
 function convertToFormData(app: ZakatApplication): Partial<ApplicationFormData> {
@@ -294,10 +318,10 @@ function convertToFormData(app: ZakatApplication): Partial<ApplicationFormData> 
       references: app.references || [],
     },
     documents: {
-      photoId: app.documents?.photoId,
-      ssnCard: app.documents?.ssnCard,
-      leaseAgreement: app.documents?.leaseAgreement,
-      otherDocuments: app.documents?.otherDocuments || [],
+      photoId: app.documents?.photoId ? convertDocumentFile(app.documents.photoId) : undefined,
+      ssnCard: app.documents?.ssnCard ? convertDocumentFile(app.documents.ssnCard) : undefined,
+      leaseAgreement: app.documents?.leaseAgreement ? convertDocumentFile(app.documents.leaseAgreement) : undefined,
+      otherDocuments: (app.documents?.otherDocuments || []).map(convertDocumentFile),
       acknowledgement: false,
     },
     previousApplications: app.previousApplications

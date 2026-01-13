@@ -165,7 +165,7 @@ export function FormWizard({
               type="button"
               onClick={handleSubmit}
               disabled={isNavigating || isSubmitting}
-              isLoading={isSubmitting}
+              loading={isSubmitting}
             >
               Submit Application
             </Button>
@@ -174,7 +174,7 @@ export function FormWizard({
               type="button"
               onClick={handleNext}
               disabled={isNavigating || isSubmitting}
-              isLoading={isNavigating}
+              loading={isNavigating}
             >
               Save & Continue
             </Button>

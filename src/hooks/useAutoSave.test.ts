@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAutoSave } from './useAutoSave';
+import type { ApplicationFormData } from '../schemas/application';
 
 // Mock the application service
 vi.mock('../services/application', () => ({
@@ -8,6 +9,9 @@ vi.mock('../services/application', () => ({
 }));
 
 import { saveDraftApplication } from '../services/application';
+
+// Helper to create mock form data
+const mockFormData = { demographics: { fullName: 'Test' } } as Partial<ApplicationFormData>;
 
 describe('useAutoSave', () => {
   beforeEach(() => {
@@ -19,7 +23,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 1000,
       })
@@ -35,7 +39,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: null,
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 100,
       })
@@ -53,7 +57,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: false,
         debounceMs: 100,
       })
@@ -70,7 +74,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 5000,
       })
@@ -90,7 +94,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 5000,
       })
@@ -111,7 +115,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 5000,
       })
@@ -131,7 +135,7 @@ describe('useAutoSave', () => {
     const { result } = renderHook(() =>
       useAutoSave({
         applicationId: 'app-123',
-        formData: { demographics: { fullName: 'Test' } },
+        formData: mockFormData,
         enabled: true,
         debounceMs: 5000,
       })
