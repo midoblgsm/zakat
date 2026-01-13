@@ -12,6 +12,9 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 
 // Applicant Pages
 import { ApplicantDashboard } from './pages/applicant/ApplicantDashboard';
+import { ApplyPage } from './pages/applicant/ApplyPage';
+import { ApplicationsPage } from './pages/applicant/ApplicationsPage';
+import { ApplicationDetailPage } from './pages/applicant/ApplicationDetailPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -45,7 +48,9 @@ function App() {
           }
         >
           <Route index element={<ApplicantDashboard />} />
-          {/* More applicant routes will be added in Phase 1.4 */}
+          <Route path="apply" element={<ApplyPage />} />
+          <Route path="applications" element={<ApplicationsPage />} />
+          <Route path="applications/:id" element={<ApplicationDetailPage />} />
         </Route>
 
         {/* Admin routes */}
