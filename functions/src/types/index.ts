@@ -1,5 +1,8 @@
 import { Timestamp } from "firebase-admin/firestore";
 
+// Re-export application types
+export * from "./application";
+
 /**
  * User roles in the system
  */
