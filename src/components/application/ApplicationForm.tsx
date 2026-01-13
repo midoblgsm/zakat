@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { FormWizard } from '../forms/FormWizard';
 import { Alert } from '../common/Alert';
@@ -252,7 +251,7 @@ export function ApplicationForm({ applicationId: propApplicationId }: Applicatio
       });
 
       return true;
-    } catch (error) {
+    } catch {
       // Trigger form validation to show errors
       await methods.trigger(stepPrefix as keyof ApplicationFormData);
       return false;

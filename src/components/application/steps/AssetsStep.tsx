@@ -2,7 +2,7 @@ import { useFormContext, useFieldArray } from 'react-hook-form';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Input } from '../../common/Input';
 import { Button } from '../../common/Button';
-import { Checkbox, Textarea } from '../../forms';
+import { Checkbox } from '../../forms';
 import { FormStep } from '../../forms/FormStep';
 import type { AssetsFormData } from '../../../schemas/application';
 

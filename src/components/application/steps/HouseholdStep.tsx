@@ -150,7 +150,7 @@ export function HouseholdStep() {
             <p>Total household members: {fields.length}</p>
             <p>
               Total dependents:{' '}
-              {fields.filter((_, index) => {
+              {fields.filter(() => {
                 // This is a simplified count; in practice, you'd need to watch the form values
                 return false;
               }).length || 'Will be calculated after saving'}

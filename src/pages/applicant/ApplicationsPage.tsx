@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PlusIcon, EyeIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { Card, CardHeader, CardContent } from '../../components/common/Card';
+import { Card, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';

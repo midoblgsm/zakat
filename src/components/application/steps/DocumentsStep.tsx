@@ -5,7 +5,6 @@ import {
   TrashIcon,
   ArrowUpTrayIcon,
   CheckCircleIcon,
-  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '../../common/Button';
 import { Checkbox } from '../../forms';

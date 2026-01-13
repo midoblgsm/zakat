@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../common/Input';
-import { Select, Checkbox, Textarea, RadioGroup } from '../../forms';
+import { Select, Checkbox, Textarea } from '../../forms';
 import { FormStep } from '../../forms/FormStep';
 import type { CircumstancesFormData } from '../../../schemas/application';
 
