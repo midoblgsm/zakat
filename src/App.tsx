@@ -19,6 +19,9 @@ import { ApplicationDetailPage } from './pages/applicant/ApplicationDetailPage';
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { BootstrapPage } from './pages/admin/BootstrapPage';
+import { ApplicationPoolPage } from './pages/admin/ApplicationPoolPage';
+import { MyApplicationsPage } from './pages/admin/MyApplicationsPage';
+import { AdminApplicationDetailPage } from './pages/admin/AdminApplicationDetailPage';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from './pages/super-admin/SuperAdminDashboard';
@@ -63,7 +66,9 @@ function App() {
           }
         >
           <Route index element={<AdminDashboard />} />
-          {/* More admin routes will be added in Phase 1.5 */}
+          <Route path="pool" element={<ApplicationPoolPage />} />
+          <Route path="my-applications" element={<MyApplicationsPage />} />
+          <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
         </Route>
 
         {/* Super Admin routes */}
