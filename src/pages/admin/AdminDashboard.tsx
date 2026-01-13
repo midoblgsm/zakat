@@ -6,7 +6,6 @@ import {
   Cog6ToothIcon,
   ExclamationTriangleIcon,
   ClockIcon,
-  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardContent } from '@/components/common/Card';

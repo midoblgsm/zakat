@@ -22,7 +22,6 @@ import type {
   ApplicationListItem,
   AdminNote,
   ApplicationHistoryEntry,
-  HistoryAction,
 } from '../types/application';
 
 const APPLICATIONS_COLLECTION = 'applications';
