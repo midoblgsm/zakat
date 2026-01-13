@@ -344,17 +344,30 @@ function convertToFormData(app: ZakatApplication): Partial<ApplicationFormData> 
 }
 
 /**
+ * Remove undefined values from an object (Firestore doesn't accept undefined)
+ */
+function removeUndefined<T extends Record<string, unknown>>(obj: T): T {
+  const result = {} as T;
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+/**
  * Convert form data to Firestore update format
  */
 function convertFromFormData(formData: Partial<ApplicationFormData>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   if (formData.demographics) {
-    result.demographics = formData.demographics;
+    result.demographics = removeUndefined(formData.demographics as Record<string, unknown>);
   }
 
   if (formData.contact) {
-    result.contact = formData.contact;
+    result.contact = removeUndefined(formData.contact as Record<string, unknown>);
   }
 
   if (formData.household) {
@@ -362,19 +375,7 @@ function convertFromFormData(formData: Partial<ApplicationFormData>): Record<str
   }
 
   if (formData.assets || formData.incomeDebts) {
-    result.financial = {
-      assets: formData.assets
-        ? {
-            house: formData.assets.hasHouse ? formData.assets.house : undefined,
-            business: formData.assets.hasBusiness ? formData.assets.business : undefined,
-            cars: formData.assets.hasCars ? formData.assets.cars : undefined,
-            cash: {
-              value: (formData.assets.cashOnHand || 0) + (formData.assets.cashInBank || 0),
-            },
-            other: formData.assets.otherAssets || [],
-            totalValue: calculateTotalAssets(formData.assets),
-          }
-        : undefined,
+    const financial: Record<string, unknown> = {
       monthlyIncome: formData.incomeDebts?.monthlyIncome || 0,
       incomeSource: formData.incomeDebts?.incomeSource || '',
       receivesGovernmentAid: formData.incomeDebts?.receivesGovernmentAid || false,
@@ -384,6 +385,28 @@ function convertFromFormData(formData: Partial<ApplicationFormData>): Record<str
       expenses: formData.incomeDebts?.expenses || [],
       totalMonthlyExpenses: calculateTotalExpenses(formData.incomeDebts?.expenses || []),
     };
+
+    if (formData.assets) {
+      const assets: Record<string, unknown> = {
+        cash: {
+          value: (formData.assets.cashOnHand || 0) + (formData.assets.cashInBank || 0),
+        },
+        other: formData.assets.otherAssets || [],
+        totalValue: calculateTotalAssets(formData.assets),
+      };
+      if (formData.assets.hasHouse && formData.assets.house) {
+        assets.house = formData.assets.house;
+      }
+      if (formData.assets.hasBusiness && formData.assets.business) {
+        assets.business = formData.assets.business;
+      }
+      if (formData.assets.hasCars && formData.assets.cars) {
+        assets.cars = formData.assets.cars;
+      }
+      financial.assets = assets;
+    }
+
+    result.financial = financial;
   }
 
   if (formData.circumstances) {
