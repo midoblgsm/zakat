@@ -410,11 +410,11 @@ function convertFromFormData(formData: Partial<ApplicationFormData>): Record<str
   }
 
   if (formData.circumstances) {
-    result.circumstances = formData.circumstances;
+    result.circumstances = removeUndefined(formData.circumstances as Record<string, unknown>);
   }
 
   if (formData.zakatRequest) {
-    result.zakatRequest = formData.zakatRequest;
+    result.zakatRequest = removeUndefined(formData.zakatRequest as Record<string, unknown>);
   }
 
   if (formData.references) {
@@ -422,29 +422,41 @@ function convertFromFormData(formData: Partial<ApplicationFormData>): Record<str
   }
 
   if (formData.documents) {
-    result.documents = {
-      photoId: formData.documents.photoId,
-      ssnCard: formData.documents.ssnCard,
-      leaseAgreement: formData.documents.leaseAgreement,
+    const docs: Record<string, unknown> = {
       otherDocuments: formData.documents.otherDocuments || [],
     };
+    if (formData.documents.photoId) {
+      docs.photoId = formData.documents.photoId;
+    }
+    if (formData.documents.ssnCard) {
+      docs.ssnCard = formData.documents.ssnCard;
+    }
+    if (formData.documents.leaseAgreement) {
+      docs.leaseAgreement = formData.documents.leaseAgreement;
+    }
+    result.documents = docs;
   }
 
   if (formData.previousApplications) {
-    result.previousApplications = {
+    const prevApps: Record<string, unknown> = {
       appliedToMHMA: formData.previousApplications.appliedToMHMA,
-      mhmaDate: formData.previousApplications.mhmaDate
-        ? Timestamp.fromDate(new Date(formData.previousApplications.mhmaDate))
-        : null,
-      mhmaOutcome: formData.previousApplications.mhmaOutcome,
-      otherOrganizations: formData.previousApplications.otherOrganizations?.map(
+    };
+    if (formData.previousApplications.mhmaDate) {
+      prevApps.mhmaDate = Timestamp.fromDate(new Date(formData.previousApplications.mhmaDate));
+    }
+    if (formData.previousApplications.mhmaOutcome) {
+      prevApps.mhmaOutcome = formData.previousApplications.mhmaOutcome;
+    }
+    if (formData.previousApplications.otherOrganizations) {
+      prevApps.otherOrganizations = formData.previousApplications.otherOrganizations.map(
         (org) => ({
           name: org.name,
           date: Timestamp.fromDate(new Date(org.date)),
           approved: org.approved,
         })
-      ),
-    };
+      );
+    }
+    result.previousApplications = prevApps;
   }
 
   return result;
