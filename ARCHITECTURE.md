@@ -132,14 +132,46 @@ A multi-tenant Zakat management platform that enables multiple masajid (mosques)
 ### 4. Cloud Functions
 **Purpose**: Server-side operations
 
-**Functions**:
-- `onUserCreate` - Initialize user profile, send welcome email
-- `onApplicationCreate` - Validate, assign ID, notify admins
-- `onApplicationUpdate` - Log history, send notifications
-- `flagApplicant` - Admin callable to flag rejected applicants
-- `assignApplication` - Atomic assignment to admin
+**Implemented Functions** (see `functions/API.md` for full documentation):
+
+**Auth Functions:**
+- `onUserCreate` - Initialize user profile on Firebase Auth creation
+- `onUserDelete` - Soft delete user on Firebase Auth deletion
+- `setUserRole` - Set user role and custom claims
+- `getUserClaims` - Get user's custom claims
+
+**User Management:**
+- `createAdminUser` - Create zakat_admin or super_admin users
+- `disableUser` / `enableUser` - Manage user account status
+- `listUsers` / `getUser` - Query user data
+
+**Application Management:**
+- `submitApplication` - Submit draft with auto-generated number
+- `assignApplication` - Claim/assign from pool
 - `releaseApplication` - Return to shared pool
-- `cleanupOldApplications` - Scheduled cleanup
+- `changeApplicationStatus` - With status transition validation
+- `getApplication` / `listApplications` - Query applications
+
+**Document Management:**
+- `requestDocuments` - Admin requests additional documents
+- `fulfillDocumentRequest` - Mark request as fulfilled
+- `verifyDocument` - Verify uploaded documents
+- `getDocumentRequests` - List document requests
+
+**Notes & Resolution:**
+- `addAdminNote` - Add internal/external notes
+- `resolveApplication` - Approve/reject with resolution details
+- `flagApplicant` / `unflagApplicant` - Flag management
+- `getApplicationHistory` - Full audit trail
+
+**Notifications:**
+- `sendNotification` / `sendBulkNotification` - Send notifications
+- `markNotificationRead` / `markAllNotificationsRead`
+- `deleteNotification` / `getUnreadNotificationCount`
+- `getUserNotifications` - Paginated notification list
+
+**Admin Bootstrap:**
+- `bootstrapSuperAdmin` - One-time initial super admin setup
 
 ### 5. Firebase Hosting
 **Purpose**: Static file hosting with CDN
@@ -1027,12 +1059,20 @@ service firebase.storage {
 - [ ] Password reset flow
 - [ ] Protected routes
 
-#### 1.3 Basic Data Layer
-- [ ] Set up Firestore collections
-- [ ] Implement basic security rules
-- [ ] Create data models/types
-- [ ] Set up Firebase Admin SDK
-- [ ] Create initial Cloud Functions
+#### 1.3 Basic Data Layer ✅ COMPLETED
+- [x] Set up Firestore collections (users, applications, masjids, flags, notifications)
+- [x] Implement comprehensive security rules with validation
+- [x] Create data models/types (TypeScript interfaces)
+- [x] Set up Firebase Admin SDK
+- [x] Create Cloud Functions:
+  - Application management (submit, assign, release, status change)
+  - Document management (request, fulfill, verify)
+  - Admin notes and resolution (add notes, approve/reject, flag/unflag)
+  - Notifications (send, bulk send, mark read, delete)
+- [x] Firebase Storage structure with security rules
+- [x] Collection initialization scripts with seed data
+
+See `functions/API.md` for complete Cloud Functions documentation.
 
 #### 1.4 Applicant Portal (Basic)
 - [ ] Convert existing HTML form to React
