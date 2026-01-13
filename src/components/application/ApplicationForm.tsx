@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { ZodError } from 'zod';
 import { FormWizard } from '../forms/FormWizard';
 import { Alert } from '../common/Alert';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -243,6 +244,9 @@ export function ApplicationForm({ applicationId: propApplicationId }: Applicatio
     try {
       await stepSchema.parseAsync(stepData);
 
+      // Clear any existing errors for this step
+      methods.clearErrors(stepPrefix as keyof ApplicationFormData);
+
       // Mark step as completed
       setCompletedSteps((prev) => {
         const next = new Set(prev);
@@ -251,9 +255,17 @@ export function ApplicationForm({ applicationId: propApplicationId }: Applicatio
       });
 
       return true;
-    } catch {
-      // Trigger form validation to show errors
-      await methods.trigger(stepPrefix as keyof ApplicationFormData);
+    } catch (error) {
+      // Set form errors from Zod validation
+      if (error instanceof ZodError) {
+        error.errors.forEach((err) => {
+          const fieldPath = `${stepPrefix}.${err.path.join('.')}` as keyof ApplicationFormData;
+          methods.setError(fieldPath, {
+            type: 'manual',
+            message: err.message,
+          });
+        });
+      }
       return false;
     }
   }, [currentStep, methods]);
