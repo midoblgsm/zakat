@@ -429,9 +429,14 @@ async function addHistoryEntry(
       'history'
     );
 
-    const historyEntry: ApplicationHistoryEntry = {
+    // Filter out undefined values - Firestore doesn't accept undefined
+    const filteredEntry = Object.fromEntries(
+      Object.entries(entry).filter(([, value]) => value !== undefined)
+    );
+
+    const historyEntry = {
       id: crypto.randomUUID(),
-      ...entry,
+      ...filteredEntry,
       createdAt: Timestamp.now(),
     };
 
