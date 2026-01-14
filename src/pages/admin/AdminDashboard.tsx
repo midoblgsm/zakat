@@ -22,7 +22,7 @@ interface AdminStats {
 }
 
 export function AdminDashboard() {
-  const { profile, user } = useAuth();
+  const { profile, user, claims } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,7 +31,7 @@ export function AdminDashboard() {
       if (!user) return;
 
       try {
-        const adminStats = await getAdminStats(user.uid);
+        const adminStats = await getAdminStats(user.uid, claims?.masjidId || null);
         setStats(adminStats);
       } catch (error) {
         console.error('Error loading admin stats:', error);
@@ -48,7 +48,7 @@ export function AdminDashboard() {
     }
 
     loadStats();
-  }, [user]);
+  }, [user, claims?.masjidId]);
 
   const statCards = [
     {

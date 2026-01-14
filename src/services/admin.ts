@@ -30,6 +30,7 @@ export interface ApplicationPoolFilters {
   status?: ApplicationStatus | ApplicationStatus[];
   search?: string;
   assignedTo?: string | null;
+  assignedToMasjid?: string | null;
   limit?: number;
   startAfterDoc?: DocumentSnapshot;
 }
@@ -65,6 +66,11 @@ export async function getApplicationPool(
     } else if (filters.assignedTo) {
       // Assigned to specific admin
       constraints.push(where('assignedTo', '==', filters.assignedTo));
+    }
+
+    // Filter by masjid (for zakat_admin viewing their masjid's applications)
+    if (filters.assignedToMasjid) {
+      constraints.push(where('assignedToMasjid', '==', filters.assignedToMasjid));
     }
 
     // Order by submission date
@@ -454,15 +460,17 @@ function isValidStatusTransition(
 
 /**
  * Get admin dashboard statistics
+ * For zakat_admin: only shows stats for pool and their own cases
+ * For super_admin: shows all stats (pass masjidId as null)
  */
-export async function getAdminStats(adminId: string): Promise<{
+export async function getAdminStats(adminId: string, masjidId: string | null): Promise<{
   poolSize: number;
   myCases: number;
   pendingReview: number;
   flaggedApplicants: number;
 }> {
   try {
-    // Get pool size (submitted, unassigned)
+    // Get pool size (submitted, unassigned) - all admins can see pool
     const poolQuery = query(
       collection(firebaseDb, APPLICATIONS_COLLECTION),
       where('status', '==', 'submitted'),
@@ -470,7 +478,7 @@ export async function getAdminStats(adminId: string): Promise<{
     );
     const poolSnapshot = await getDocs(poolQuery);
 
-    // Get my cases
+    // Get my cases (assigned to this admin)
     const myCasesQuery = query(
       collection(firebaseDb, APPLICATIONS_COLLECTION),
       where('assignedTo', '==', adminId),
@@ -478,25 +486,50 @@ export async function getAdminStats(adminId: string): Promise<{
     );
     const myCasesSnapshot = await getDocs(myCasesQuery);
 
-    // Get pending review (applications under review by anyone)
-    const pendingQuery = query(
-      collection(firebaseDb, APPLICATIONS_COLLECTION),
-      where('status', 'in', ['under_review', 'pending_documents', 'pending_verification'])
-    );
-    const pendingSnapshot = await getDocs(pendingQuery);
+    let pendingReview = 0;
+    let flaggedApplicants = 0;
 
-    // Get flagged applicants (applications with flagged applicants)
-    const flaggedQuery = query(
-      collection(firebaseDb, APPLICATIONS_COLLECTION),
-      where('applicantSnapshot.isFlagged', '==', true)
-    );
-    const flaggedSnapshot = await getDocs(flaggedQuery);
+    if (masjidId) {
+      // For zakat_admin: get pending review for their masjid only
+      const pendingQuery = query(
+        collection(firebaseDb, APPLICATIONS_COLLECTION),
+        where('assignedToMasjid', '==', masjidId),
+        where('status', 'in', ['under_review', 'pending_documents', 'pending_verification'])
+      );
+      const pendingSnapshot = await getDocs(pendingQuery);
+      pendingReview = pendingSnapshot.size;
+
+      // For zakat_admin: get flagged applicants for their masjid only
+      const flaggedQuery = query(
+        collection(firebaseDb, APPLICATIONS_COLLECTION),
+        where('assignedToMasjid', '==', masjidId),
+        where('applicantSnapshot.isFlagged', '==', true)
+      );
+      const flaggedSnapshot = await getDocs(flaggedQuery);
+      flaggedApplicants = flaggedSnapshot.size;
+    } else {
+      // For super_admin: get all pending review
+      const pendingQuery = query(
+        collection(firebaseDb, APPLICATIONS_COLLECTION),
+        where('status', 'in', ['under_review', 'pending_documents', 'pending_verification'])
+      );
+      const pendingSnapshot = await getDocs(pendingQuery);
+      pendingReview = pendingSnapshot.size;
+
+      // For super_admin: get all flagged applicants
+      const flaggedQuery = query(
+        collection(firebaseDb, APPLICATIONS_COLLECTION),
+        where('applicantSnapshot.isFlagged', '==', true)
+      );
+      const flaggedSnapshot = await getDocs(flaggedQuery);
+      flaggedApplicants = flaggedSnapshot.size;
+    }
 
     return {
       poolSize: poolSnapshot.size,
       myCases: myCasesSnapshot.size,
-      pendingReview: pendingSnapshot.size,
-      flaggedApplicants: flaggedSnapshot.size,
+      pendingReview,
+      flaggedApplicants,
     };
   } catch (error) {
     console.error('Error getting admin stats:', error);
