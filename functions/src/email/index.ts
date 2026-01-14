@@ -41,16 +41,22 @@ interface EmailQueueDocument {
   to: string | string[];
   from?: string;
   replyTo?: string;
-  subject: string;
-  text?: string;
-  html?: string;
+  message: {
+    subject: string;
+    text?: string;
+    html?: string;
+  };
   template?: {
     name: EmailTemplate;
     data: Record<string, unknown>;
   };
   createdAt: Timestamp;
-  processedAt?: Timestamp;
-  error?: string;
+  delivery?: {
+    state: string;
+    attempts: number;
+    error?: string;
+    endTime?: Timestamp;
+  };
 }
 
 /**
@@ -588,9 +594,11 @@ export async function queueEmail(
     to,
     from: options.from || "noreply@zakatplatform.org",
     replyTo: options.replyTo,
-    subject: templateConfig.subject(data),
-    text: templateConfig.text(data),
-    html: templateConfig.html(data),
+    message: {
+      subject: templateConfig.subject(data),
+      text: templateConfig.text(data),
+      html: templateConfig.html(data),
+    },
     template: {
       name: template,
       data,
