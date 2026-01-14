@@ -29,6 +29,7 @@ import { MasajidListPage } from './pages/super-admin/MasajidListPage';
 import { MasjidOnboardingPage } from './pages/super-admin/MasjidOnboardingPage';
 import { MasjidDetailPage } from './pages/super-admin/MasjidDetailPage';
 import { UserManagementPage } from './pages/super-admin/UserManagementPage';
+import { SuperAdminApplicationsPage } from './pages/super-admin/SuperAdminApplicationsPage';
 
 // Error Pages
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -89,6 +90,7 @@ function App() {
           <Route path="masajid/new" element={<MasjidOnboardingPage />} />
           <Route path="masajid/:id" element={<MasjidDetailPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="applications" element={<SuperAdminApplicationsPage />} />
         </Route>
 
         {/* 404 */}
