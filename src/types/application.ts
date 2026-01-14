@@ -266,8 +266,8 @@ export interface ZakatApplication {
 
   // Status & Assignment
   status: ApplicationStatus;
-  assignedTo?: string;
-  assignedToMasjid?: string;
+  assignedTo?: string | null;
+  assignedToMasjid?: string | null;
   assignedAt?: Timestamp;
 
   // Form Sections
@@ -336,8 +336,8 @@ export interface ApplicationListItem {
   applicationNumber: string;
   applicantSnapshot: ApplicantSnapshot;
   status: ApplicationStatus;
-  assignedTo?: string;
-  assignedToMasjid?: string;
+  assignedTo?: string | null;
+  assignedToMasjid?: string | null;
   zakatRequest: {
     assistanceType: 'monthly' | 'one_time';
     amountRequested: number;
