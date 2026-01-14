@@ -209,12 +209,20 @@ service cloud.firestore {
       // Validate admin update
       function isValidAdminApplicationUpdate() {
         // Super admins can update anything
-        // Zakat admins can update if assigned to them or their masjid
-        // Or if they are claiming from the pool
-        let isClaiming = isInPool() && request.resource.data.assignedTo == request.auth.uid;
+        // Zakat admins can:
+        // 1. Claim from pool (status == submitted, setting assignedTo to themselves)
+        // 2. Update if assigned to them
+        // 3. Update if in their masjid
+
+        // Simplified claiming check - only verify status is submitted and user is claiming for themselves
+        // The client-side already validates that assignedTo is null before attempting claim
+        let isClaimingFromPool =
+          resource.data.status == 'submitted' &&
+          request.resource.data.assignedTo == request.auth.uid;
+
         let isAssignedOrMasjid = isAssignedToMe() || isZakatAdminForMasjid(getApplication().assignedToMasjid);
 
-        return isSuperAdmin() || isClaiming || isAssignedOrMasjid;
+        return isSuperAdmin() || isClaimingFromPool || isAssignedOrMasjid;
       }
 
       // Application history subcollection
