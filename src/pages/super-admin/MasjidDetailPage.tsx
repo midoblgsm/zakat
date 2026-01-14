@@ -9,7 +9,7 @@ import {
   PaintBrushIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
-import { Card, CardHeader, CardContent } from '@/components/common/Card';
+import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Alert } from '@/components/common/Alert';
@@ -17,7 +17,6 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { getMasjid, updateMasjid, updateMasjidZakatConfig } from '@/services/masjid';
 import {
   updateMasjidProfileSchema,
-  zakatConfigSchema,
   US_STATES,
   DOCUMENT_TYPES,
   type UpdateMasjidProfileFormData,
