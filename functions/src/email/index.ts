@@ -8,15 +8,15 @@
  */
 
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { defineSecret } from "firebase-functions/params";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { NotificationType } from "../notifications";
 
 const db = getFirestore();
 
-// Optional: Define secrets for direct email sending
-const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
+// Note: For direct SendGrid integration, add:
+// import { defineSecret } from "firebase-functions/params";
+// const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
 
 /**
  * Email template types
