@@ -73,7 +73,7 @@ export interface Masjid {
  */
 export interface CreateMasjidInput {
   name: string;
-  slug: string;
+  slug?: string;  // Optional - will be generated from name if not provided
   email: string;
   phone: string;
   website?: string;

@@ -1,0 +1,1 @@
+export { DocumentVerificationPanel } from './DocumentVerificationPanel';

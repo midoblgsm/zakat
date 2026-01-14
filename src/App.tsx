@@ -25,6 +25,10 @@ import { AdminApplicationDetailPage } from './pages/admin/AdminApplicationDetail
 
 // Super Admin Pages
 import { SuperAdminDashboard } from './pages/super-admin/SuperAdminDashboard';
+import { MasajidListPage } from './pages/super-admin/MasajidListPage';
+import { MasjidOnboardingPage } from './pages/super-admin/MasjidOnboardingPage';
+import { MasjidDetailPage } from './pages/super-admin/MasjidDetailPage';
+import { UserManagementPage } from './pages/super-admin/UserManagementPage';
 
 // Error Pages
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -81,7 +85,10 @@ function App() {
           }
         >
           <Route index element={<SuperAdminDashboard />} />
-          {/* More super admin routes will be added in Phase 2 */}
+          <Route path="masajid" element={<MasajidListPage />} />
+          <Route path="masajid/new" element={<MasjidOnboardingPage />} />
+          <Route path="masajid/:id" element={<MasjidDetailPage />} />
+          <Route path="users" element={<UserManagementPage />} />
         </Route>
 
         {/* 404 */}
