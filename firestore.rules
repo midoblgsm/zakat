@@ -164,10 +164,10 @@ service cloud.firestore {
       }
 
       // Applicants can read their own applications
-      // Admins can read: applications in pool, applications assigned to them/their masjid, or all (super_admin)
+      // Admins can read: submitted applications, applications assigned to them/their masjid, or all (super_admin)
       allow read: if isOwner(getApplication().applicantId)
         || isSuperAdmin()
-        || (isZakatAdmin() && isInPool())
+        || (isZakatAdmin() && getApplication().status == 'submitted')
         || (isZakatAdmin() && isAssignedToMe())
         || (isZakatAdmin() && getApplication().assignedToMasjid == getUserMasjid());
 
