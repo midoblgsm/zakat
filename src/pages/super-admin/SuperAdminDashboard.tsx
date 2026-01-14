@@ -4,7 +4,6 @@ import {
   BuildingOffice2Icon,
   UserGroupIcon,
   DocumentTextIcon,
-  FlagIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
@@ -87,7 +86,7 @@ export function SuperAdminDashboard() {
           value: stats.totalApplicationsHandled.toString(),
           icon: DocumentTextIcon,
           color: 'bg-green-500',
-          link: null,
+          link: '/super-admin/applications',
         },
         {
           label: 'Total Disbursed',
@@ -185,15 +184,15 @@ export function SuperAdminDashboard() {
             </Card>
 
             <Card>
-              <CardHeader title="Flag Management" />
+              <CardHeader title="Applications" />
               <CardContent>
                 <p className="text-sm text-gray-600">
-                  Review and manage flagged applicants across all masajid.
+                  View and monitor all zakat applications across all masajid.
                 </p>
-                <Link to="/super-admin/flags" className="mt-4 block">
-                  <Button variant="outline" fullWidth>
-                    <FlagIcon className="h-4 w-4 mr-2" />
-                    View Flags
+                <Link to="/super-admin/applications" className="mt-4 block">
+                  <Button fullWidth>
+                    <DocumentTextIcon className="h-4 w-4 mr-2" />
+                    View All Applications
                   </Button>
                 </Link>
               </CardContent>

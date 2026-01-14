@@ -511,6 +511,84 @@ export async function getAdminStats(adminId: string): Promise<{
 }
 
 /**
+ * Get all applications (for super admin)
+ * Returns all applications across all masajid with optional filtering
+ */
+export async function getAllApplications(
+  filters: ApplicationPoolFilters = {}
+): Promise<ApplicationPoolResult> {
+  try {
+    const constraints: QueryConstraint[] = [];
+
+    // Filter by status if provided
+    if (filters.status) {
+      const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+      constraints.push(where('status', 'in', statuses));
+    }
+
+    // Order by submission date (newest first), fallback to createdAt
+    constraints.push(orderBy('createdAt', 'desc'));
+
+    // Pagination
+    const pageLimit = filters.limit || 20;
+    constraints.push(firestoreLimit(pageLimit + 1));
+
+    if (filters.startAfterDoc) {
+      constraints.push(startAfter(filters.startAfterDoc));
+    }
+
+    const q = query(collection(firebaseDb, APPLICATIONS_COLLECTION), ...constraints);
+    const snapshot = await getDocs(q);
+
+    let applications = snapshot.docs.map((doc) => {
+      const data = doc.data() as ZakatApplication;
+      return {
+        id: data.id,
+        applicationNumber: data.applicationNumber,
+        applicantSnapshot: data.applicantSnapshot,
+        status: data.status,
+        assignedTo: data.assignedTo,
+        assignedToMasjid: data.assignedToMasjid,
+        zakatRequest: {
+          assistanceType: data.zakatRequest?.assistanceType || 'one_time',
+          amountRequested: data.zakatRequest?.amountRequested || 0,
+        },
+        createdAt: data.createdAt,
+        submittedAt: data.submittedAt,
+      } as ApplicationListItem;
+    });
+
+    // Apply client-side search filter if provided
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      applications = applications.filter(
+        (app) =>
+          app.applicantSnapshot.name.toLowerCase().includes(searchLower) ||
+          app.applicationNumber.toLowerCase().includes(searchLower) ||
+          app.applicantSnapshot.email.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Check if there are more results
+    const hasMore = applications.length > pageLimit;
+    if (hasMore) {
+      applications = applications.slice(0, pageLimit);
+    }
+
+    const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[Math.min(snapshot.docs.length - 1, pageLimit - 1)] : null;
+
+    return {
+      applications,
+      lastDoc,
+      hasMore,
+    };
+  } catch (error) {
+    console.error('Error getting all applications:', error);
+    throw error;
+  }
+}
+
+/**
  * Get valid status transitions for a given status
  */
 export function getValidStatusTransitions(
