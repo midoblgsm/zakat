@@ -368,28 +368,6 @@ async function addHistoryEntry(
 }
 
 /**
- * Check if status transition is valid
- */
-function isValidStatusTransition(
-  currentStatus: ApplicationStatus,
-  newStatus: ApplicationStatus
-): boolean {
-  const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
-    draft: ['submitted'],
-    submitted: ['under_review'],
-    under_review: ['pending_documents', 'pending_verification', 'approved', 'rejected', 'submitted'],
-    pending_documents: ['under_review', 'approved', 'rejected'],
-    pending_verification: ['under_review', 'approved', 'rejected'],
-    approved: ['disbursed', 'closed'],
-    rejected: ['closed'],
-    disbursed: ['closed'],
-    closed: [],
-  };
-
-  return validTransitions[currentStatus]?.includes(newStatus) || false;
-}
-
-/**
  * Get admin dashboard statistics
  * For zakat_admin: only shows stats for pool and their own cases
  * For super_admin: shows all stats (pass masjidId as null)

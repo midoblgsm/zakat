@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { firebaseDb, firebaseFunctions } from './firebase';
-import type { ZakatApplication, ApplicationStatus, ApplicationHistoryEntry } from '../types/application';
+import type { ZakatApplication, ApplicationHistoryEntry } from '../types/application';
 import type { ApplicationFormData } from '../schemas/application';
 
 const APPLICATIONS_COLLECTION = 'applications';
