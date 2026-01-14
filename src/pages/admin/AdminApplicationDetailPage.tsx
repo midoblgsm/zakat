@@ -475,11 +475,13 @@ export function AdminApplicationDetailPage() {
     return null;
   }
 
+  const isSuperAdmin = claims?.role === 'super_admin';
   const isAssignedToMe = application.assignedTo === user?.uid;
-  const canClaim = application.status === 'submitted' && !application.assignedTo;
-  const canRelease = isAssignedToMe;
-  const canChangeStatus = isAssignedToMe && application.status !== 'submitted';
-  const canAddNote = isAssignedToMe || claims?.role === 'super_admin';
+  const hasMasjidId = !!claims?.masjidId;
+  const canClaim = application.status === 'submitted' && !application.assignedTo && hasMasjidId;
+  const canRelease = isAssignedToMe && hasMasjidId;
+  const canChangeStatus = isAssignedToMe && application.status !== 'submitted' && hasMasjidId;
+  const canAddNote = (isAssignedToMe || isSuperAdmin) && hasMasjidId;
 
   const submittedDate = application.submittedAt?.toDate
     ? application.submittedAt.toDate()
@@ -490,11 +492,11 @@ export function AdminApplicationDetailPage() {
       {/* Header */}
       <div className="mb-8">
         <Link
-          to={isAssignedToMe ? ROUTES.ADMIN.MY_APPLICATIONS : ROUTES.ADMIN.POOL}
+          to={isSuperAdmin ? ROUTES.SUPER_ADMIN.APPLICATIONS : (isAssignedToMe ? ROUTES.ADMIN.MY_APPLICATIONS : ROUTES.ADMIN.POOL)}
           className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          {isAssignedToMe ? 'Back to My Cases' : 'Back to Pool'}
+          {isSuperAdmin ? 'Back to Applications' : (isAssignedToMe ? 'Back to My Cases' : 'Back to Pool')}
         </Link>
 
         <div className="flex items-start justify-between flex-wrap gap-4">
@@ -589,7 +591,9 @@ export function AdminApplicationDetailPage() {
           </div>
           {!canClaim && !canRelease && !canChangeStatus && !canAddNote && (
             <p className="text-sm text-gray-500">
-              No actions available. Claim the application to make changes.
+              {isSuperAdmin
+                ? 'View-only mode. Super admins can monitor applications but cannot claim or modify them directly.'
+                : 'No actions available. Claim the application to make changes.'}
             </p>
           )}
         </CardContent>
