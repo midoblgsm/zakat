@@ -5,11 +5,28 @@ import {
   TrashIcon,
   ArrowUpTrayIcon,
   CheckCircleIcon,
+  EyeIcon,
+  ArrowDownTrayIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '../../common/Button';
 import { Checkbox } from '../../forms';
 import { FormStep } from '../../forms/FormStep';
 import { Alert } from '../../common/Alert';
+import { useAuth } from '../../../contexts/AuthContext';
+import {
+  uploadApplicationDocument,
+  deleteFile,
+  getFileDownloadUrl,
+  formatFileSize,
+  getFileTypeCategory,
+} from '../../../services/storage';
+import {
+  validateFile,
+  isImageFile,
+  isPdfFile,
+  getReadableFileType,
+} from '../../../utils/fileValidation';
 import type { DocumentsFormData } from '../../../schemas/application';
 
 interface UploadedFile {
@@ -17,6 +34,9 @@ interface UploadedFile {
   storagePath: string;
   uploadedAt: string;
   verified: boolean;
+  downloadUrl?: string;
+  size?: number;
+  contentType?: string;
 }
 
 interface FileUploadCardProps {
@@ -26,8 +46,10 @@ interface FileUploadCardProps {
   accept?: string;
   file?: UploadedFile;
   isUploading?: boolean;
+  uploadProgress?: number;
   onUpload: (file: File) => Promise<void>;
   onRemove: () => void;
+  onPreview?: () => void;
 }
 
 function FileUploadCard({
@@ -37,15 +59,51 @@ function FileUploadCard({
   accept = '.pdf,.jpg,.jpeg,.png',
   file,
   isUploading,
+  uploadProgress = 0,
   onUpload,
   onRemove,
+  onPreview,
 }: FileUploadCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       await onUpload(selectedFile);
     }
     e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      await onUpload(droppedFile);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (file?.downloadUrl) {
+      window.open(file.downloadUrl, '_blank');
+    } else if (file?.storagePath) {
+      try {
+        const url = await getFileDownloadUrl(file.storagePath);
+        window.open(url, '_blank');
+      } catch (error) {
+        console.error('Failed to get download URL:', error);
+      }
+    }
   };
 
   return (
@@ -71,35 +129,85 @@ function FileUploadCard({
 
       <div className="mt-4">
         {file ? (
-          <div className="flex items-center justify-between bg-gray-50 rounded p-3">
-            <div className="flex items-center">
-              <DocumentIcon className="h-8 w-8 text-gray-400 mr-3" />
-              <div>
-                <p className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
-                  {file.fileName}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Uploaded {new Date(file.uploadedAt).toLocaleDateString()}
-                </p>
+          <div className="bg-gray-50 rounded-lg p-4 border">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {file.contentType?.startsWith('image/') ? (
+                    <div className="h-12 w-12 rounded bg-gray-200 flex items-center justify-center">
+                      <DocumentIcon className="h-6 w-6 text-gray-400" />
+                    </div>
+                  ) : (
+                    <div className="h-12 w-12 rounded bg-red-100 flex items-center justify-center">
+                      <DocumentIcon className="h-6 w-6 text-red-500" />
+                    </div>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                    {file.fileName}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {file.contentType && getReadableFileType(file.contentType)}
+                    {file.size && ` - ${formatFileSize(file.size)}`}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Uploaded {new Date(file.uploadedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {onPreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onPreview}
+                    title="Preview"
+                  >
+                    <EyeIcon className="h-4 w-4 text-gray-500" />
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDownload}
+                  title="Download"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4 text-gray-500" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRemove}
+                  className="text-red-600 hover:text-red-700"
+                  title="Remove"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="text-red-600 hover:text-red-700"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </Button>
           </div>
         ) : (
-          <label className="cursor-pointer block">
-            <div className="flex flex-col items-center justify-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 transition-colors">
+          <label
+            className="cursor-pointer block"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div
+              className={`flex flex-col items-center justify-center py-6 rounded-lg border-2 border-dashed transition-colors ${
+                isDragging
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-300 bg-gray-50 hover:border-primary-400'
+              }`}
+            >
               {isUploading ? (
-                <div className="flex items-center">
+                <div className="flex flex-col items-center">
                   <svg
-                    className="animate-spin h-6 w-6 text-primary-500 mr-2"
+                    className="animate-spin h-8 w-8 text-primary-500 mb-2"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -117,7 +225,17 @@ function FileUploadCard({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  <span className="text-sm text-gray-600">Uploading...</span>
+                  <span className="text-sm text-gray-600">
+                    Uploading... {uploadProgress > 0 && `${uploadProgress}%`}
+                  </span>
+                  {uploadProgress > 0 && (
+                    <div className="w-48 h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className="h-full bg-primary-500 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -146,6 +264,7 @@ function FileUploadCard({
 }
 
 export function DocumentsStep() {
+  const { user } = useAuth();
   const {
     register,
     watch,
@@ -155,7 +274,10 @@ export function DocumentsStep() {
   } = useFormContext<{ documents: DocumentsFormData }>();
 
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -166,27 +288,43 @@ export function DocumentsStep() {
   const ssnCard = watch('documents.ssnCard');
   const leaseAgreement = watch('documents.leaseAgreement');
 
-  // Simulated upload function - in production, this would upload to Firebase Storage
+  // Get application ID from context or generate temporary one
+  const applicationId = watch('id') || `temp_${user?.uid || 'unknown'}`;
+
   const handleUpload = useCallback(
     async (docType: string, file: File): Promise<void> => {
       setUploadingDoc(docType);
+      setUploadProgress(0);
       setUploadError(null);
 
       try {
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error('File size must be less than 10MB');
+        // Validate file first
+        const validation = await validateFile(file);
+        if (!validation.isValid) {
+          throw new Error(validation.errors[0]);
         }
 
-        // Simulate upload delay
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        // Show warnings if any
+        if (validation.warnings.length > 0) {
+          console.warn('File validation warnings:', validation.warnings);
+        }
 
-        // In production, this would be the actual upload to Firebase Storage
+        // Upload to Firebase Storage
+        const result = await uploadApplicationDocument(
+          applicationId,
+          docType,
+          file,
+          (progress) => setUploadProgress(progress)
+        );
+
         const uploadedFile: UploadedFile = {
-          fileName: file.name,
-          storagePath: `documents/${Date.now()}_${file.name}`,
-          uploadedAt: new Date().toISOString(),
+          fileName: result.fileName,
+          storagePath: result.storagePath,
+          uploadedAt: result.uploadedAt,
           verified: false,
+          downloadUrl: result.downloadUrl,
+          size: result.size,
+          contentType: result.contentType,
         };
 
         if (docType === 'photoId') {
@@ -199,30 +337,67 @@ export function DocumentsStep() {
           append(uploadedFile);
         }
       } catch (error) {
+        console.error('Upload error:', error);
         setUploadError(
           error instanceof Error ? error.message : 'Failed to upload file'
         );
       } finally {
         setUploadingDoc(null);
+        setUploadProgress(0);
       }
     },
-    [setValue, append]
+    [setValue, append, applicationId]
   );
 
   const handleRemove = useCallback(
-    (docType: string, index?: number) => {
-      if (docType === 'photoId') {
-        setValue('documents.photoId', undefined);
-      } else if (docType === 'ssnCard') {
-        setValue('documents.ssnCard', undefined);
-      } else if (docType === 'leaseAgreement') {
-        setValue('documents.leaseAgreement', undefined);
-      } else if (docType === 'other' && index !== undefined) {
-        remove(index);
+    async (docType: string, index?: number) => {
+      try {
+        let storagePath: string | undefined;
+
+        if (docType === 'photoId') {
+          storagePath = (photoId as UploadedFile | undefined)?.storagePath;
+          setValue('documents.photoId', undefined);
+        } else if (docType === 'ssnCard') {
+          storagePath = (ssnCard as UploadedFile | undefined)?.storagePath;
+          setValue('documents.ssnCard', undefined);
+        } else if (docType === 'leaseAgreement') {
+          storagePath = (leaseAgreement as UploadedFile | undefined)?.storagePath;
+          setValue('documents.leaseAgreement', undefined);
+        } else if (docType === 'other' && index !== undefined) {
+          storagePath = (fields[index] as unknown as UploadedFile)?.storagePath;
+          remove(index);
+        }
+
+        // Delete from storage if path exists
+        if (storagePath) {
+          try {
+            await deleteFile(storagePath);
+          } catch (error) {
+            // Log but don't fail - file might already be deleted
+            console.warn('Could not delete file from storage:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing file:', error);
       }
     },
-    [setValue, remove]
+    [setValue, remove, photoId, ssnCard, leaseAgreement, fields]
   );
+
+  const handlePreview = useCallback(async (file: UploadedFile) => {
+    try {
+      const url = file.downloadUrl || (await getFileDownloadUrl(file.storagePath));
+      setPreviewUrl(url);
+      setPreviewFile(file);
+    } catch (error) {
+      console.error('Error getting preview URL:', error);
+    }
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewUrl(null);
+    setPreviewFile(null);
+  }, []);
 
   return (
     <FormStep
@@ -232,7 +407,10 @@ export function DocumentsStep() {
       <div className="space-y-6">
         {uploadError && (
           <Alert variant="error" onClose={() => setUploadError(null)}>
-            {uploadError}
+            <div className="flex items-start">
+              <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>{uploadError}</span>
+            </div>
           </Alert>
         )}
 
@@ -248,8 +426,14 @@ export function DocumentsStep() {
               required
               file={photoId as UploadedFile | undefined}
               isUploading={uploadingDoc === 'photoId'}
+              uploadProgress={uploadingDoc === 'photoId' ? uploadProgress : 0}
               onUpload={(file) => handleUpload('photoId', file)}
               onRemove={() => handleRemove('photoId')}
+              onPreview={
+                photoId
+                  ? () => handlePreview(photoId as UploadedFile)
+                  : undefined
+              }
             />
 
             <FileUploadCard
@@ -258,8 +442,14 @@ export function DocumentsStep() {
               required
               file={ssnCard as UploadedFile | undefined}
               isUploading={uploadingDoc === 'ssnCard'}
+              uploadProgress={uploadingDoc === 'ssnCard' ? uploadProgress : 0}
               onUpload={(file) => handleUpload('ssnCard', file)}
               onRemove={() => handleRemove('ssnCard')}
+              onPreview={
+                ssnCard
+                  ? () => handlePreview(ssnCard as UploadedFile)
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -275,8 +465,16 @@ export function DocumentsStep() {
               description="Current lease, utility bill, or other proof of residence"
               file={leaseAgreement as UploadedFile | undefined}
               isUploading={uploadingDoc === 'leaseAgreement'}
+              uploadProgress={
+                uploadingDoc === 'leaseAgreement' ? uploadProgress : 0
+              }
               onUpload={(file) => handleUpload('leaseAgreement', file)}
               onRemove={() => handleRemove('leaseAgreement')}
+              onPreview={
+                leaseAgreement
+                  ? () => handlePreview(leaseAgreement as UploadedFile)
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -293,43 +491,90 @@ export function DocumentsStep() {
 
           {fields.length > 0 && (
             <div className="space-y-3 mb-4">
-              {fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="flex items-center justify-between bg-gray-50 rounded p-3 border"
-                >
-                  <div className="flex items-center">
-                    <DocumentIcon className="h-6 w-6 text-gray-400 mr-3" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        {(field as unknown as UploadedFile).fileName}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Uploaded{' '}
-                        {new Date(
-                          (field as unknown as UploadedFile).uploadedAt
-                        ).toLocaleDateString()}
-                      </p>
+              {fields.map((field, index) => {
+                const uploadedField = field as unknown as UploadedFile;
+                return (
+                  <div
+                    key={field.id}
+                    className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border"
+                  >
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center mr-3">
+                        <DocumentIcon className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {uploadedField.fileName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {uploadedField.contentType &&
+                            getReadableFileType(uploadedField.contentType)}
+                          {uploadedField.size &&
+                            ` - ${formatFileSize(uploadedField.size)}`}
+                          {' - '}
+                          Uploaded{' '}
+                          {new Date(uploadedField.uploadedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePreview(uploadedField)}
+                        title="Preview"
+                      >
+                        <EyeIcon className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemove('other', index)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Remove"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemove('other', index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           <label className="cursor-pointer block">
-            <div className="flex items-center justify-center py-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 transition-colors">
+            <div
+              className={`flex items-center justify-center py-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 transition-colors ${
+                uploadingDoc === 'other' ? 'pointer-events-none' : ''
+              }`}
+            >
               {uploadingDoc === 'other' ? (
-                <span className="text-sm text-gray-600">Uploading...</span>
+                <div className="flex items-center">
+                  <svg
+                    className="animate-spin h-5 w-5 text-primary-500 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span className="text-sm text-gray-600">
+                    Uploading... {uploadProgress > 0 && `${uploadProgress}%`}
+                  </span>
+                </div>
               ) : (
                 <>
                   <ArrowUpTrayIcon className="h-5 w-5 text-gray-400 mr-2" />
@@ -371,12 +616,91 @@ export function DocumentsStep() {
             Document Security
           </h4>
           <p className="text-sm text-gray-600">
-            All documents are encrypted and stored securely. Access is restricted
-            to authorized administrators only. Your sensitive information is
-            protected according to our privacy policy.
+            All documents are encrypted and stored securely in Firebase Storage.
+            Access is restricted to authorized administrators only. Your sensitive
+            information is protected according to our privacy policy.
           </p>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {previewUrl && previewFile && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          aria-labelledby="preview-modal"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={closePreview}
+            />
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {previewFile.fileName}
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closePreview}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </Button>
+              </div>
+              <div className="max-h-[70vh] overflow-auto">
+                {previewFile.contentType?.startsWith('image/') ? (
+                  <img
+                    src={previewUrl}
+                    alt={previewFile.fileName}
+                    className="max-w-full h-auto mx-auto"
+                  />
+                ) : previewFile.contentType === 'application/pdf' ? (
+                  <iframe
+                    src={previewUrl}
+                    title={previewFile.fileName}
+                    className="w-full h-[60vh]"
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <DocumentIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">
+                      Preview not available for this file type
+                    </p>
+                    <Button
+                      className="mt-4"
+                      onClick={() => window.open(previewUrl, '_blank')}
+                    >
+                      Download to View
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </FormStep>
   );
 }
