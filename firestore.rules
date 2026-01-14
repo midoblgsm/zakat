@@ -152,9 +152,10 @@ service cloud.firestore {
       }
 
       // Check if application is in the pool (submitted, not assigned)
+      // Handles both: field not existing, or field explicitly set to null
       function isInPool() {
         return getApplication().status == 'submitted'
-          && (!('assignedTo' in resource.data) || resource.data.assignedTo == null || resource.data.assignedTo == '');
+          && (!('assignedTo' in resource.data) || resource.data.assignedTo == null);
       }
 
       // Check if application is assigned to requesting admin
@@ -163,13 +164,12 @@ service cloud.firestore {
       }
 
       // Applicants can read their own applications
-      // Admins can read: applications in pool, applications assigned to their masjid, or all (super_admin)
-      // Note: Pool applications (submitted, unassigned) are readable by all admins
+      // Admins can read: applications in pool, applications assigned to them/their masjid, or all (super_admin)
       allow read: if isOwner(getApplication().applicantId)
-        || (isAdmin() && isInPool())
-        || isAssignedToMe()
-        || isZakatAdminForMasjid(getApplication().assignedToMasjid)
-        || isSuperAdmin();
+        || isSuperAdmin()
+        || (isZakatAdmin() && isInPool())
+        || (isZakatAdmin() && isAssignedToMe())
+        || (isZakatAdmin() && getApplication().assignedToMasjid == getUserMasjid());
 
       // Applicants can create applications for themselves
       allow create: if isAuthenticated()

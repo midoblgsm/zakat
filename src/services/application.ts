@@ -84,6 +84,8 @@ export async function createDraftApplication(
         isFlagged: false,
       },
       status: 'draft',
+      assignedTo: null,
+      assignedToMasjid: null,
       demographics: {} as ZakatApplication['demographics'],
       contact: {} as ZakatApplication['contact'],
       household: [],
