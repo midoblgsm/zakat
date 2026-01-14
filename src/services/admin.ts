@@ -15,7 +15,8 @@ import {
   QueryConstraint,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { firebaseDb } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { firebaseDb, firebaseFunctions } from './firebase';
 import type {
   ZakatApplication,
   ApplicationStatus,
@@ -178,55 +179,25 @@ export async function getApplicationForAdmin(
 
 /**
  * Claim an application from the pool
+ * Calls the Cloud Function to properly process with notifications
  */
 export async function claimApplication(
   applicationId: string,
-  adminId: string,
-  adminName: string,
-  masjidId: string
+  _adminId: string,
+  _adminName: string,
+  _masjidId: string
 ): Promise<void> {
   try {
-    const docRef = doc(firebaseDb, APPLICATIONS_COLLECTION, applicationId);
-    const docSnap = await getDoc(docRef);
+    const assignApplicationFn = httpsCallable<
+      { applicationId: string; assignToUserId?: string },
+      { success: boolean; data: { assignedTo: string } }
+    >(firebaseFunctions, 'assignApplication');
 
-    if (!docSnap.exists()) {
-      throw new Error('Application not found');
+    const result = await assignApplicationFn({ applicationId });
+
+    if (!result.data.success) {
+      throw new Error('Failed to claim application');
     }
-
-    const app = docSnap.data() as ZakatApplication;
-
-    // Check if already assigned
-    if (app.assignedTo) {
-      throw new Error('Application is already assigned to another admin');
-    }
-
-    // Check if status allows claiming
-    if (app.status !== 'submitted') {
-      throw new Error('Only submitted applications can be claimed');
-    }
-
-    // Update application
-    await updateDoc(docRef, {
-      assignedTo: adminId,
-      assignedToMasjid: masjidId,
-      assignedAt: serverTimestamp(),
-      status: 'under_review',
-      updatedAt: serverTimestamp(),
-    });
-
-    // Add history entry
-    await addHistoryEntry(applicationId, {
-      action: 'assigned',
-      performedBy: adminId,
-      performedByName: adminName,
-      performedByRole: 'zakat_admin',
-      performedByMasjid: masjidId,
-      previousStatus: app.status,
-      newStatus: 'under_review',
-      previousAssignee: null,
-      newAssignee: adminId,
-      details: `Application claimed by ${adminName}`,
-    });
   } catch (error) {
     console.error('Error claiming application:', error);
     throw error;
@@ -235,50 +206,26 @@ export async function claimApplication(
 
 /**
  * Release an application back to the pool
+ * Calls the Cloud Function to properly process with notifications
  */
 export async function releaseApplication(
   applicationId: string,
-  adminId: string,
-  adminName: string,
-  masjidId: string
+  _adminId: string,
+  _adminName: string,
+  _masjidId: string,
+  reason?: string
 ): Promise<void> {
   try {
-    const docRef = doc(firebaseDb, APPLICATIONS_COLLECTION, applicationId);
-    const docSnap = await getDoc(docRef);
+    const releaseApplicationFn = httpsCallable<
+      { applicationId: string; reason?: string },
+      { success: boolean }
+    >(firebaseFunctions, 'releaseApplication');
 
-    if (!docSnap.exists()) {
-      throw new Error('Application not found');
+    const result = await releaseApplicationFn({ applicationId, reason });
+
+    if (!result.data.success) {
+      throw new Error('Failed to release application');
     }
-
-    const app = docSnap.data() as ZakatApplication;
-
-    // Check if assigned to this admin
-    if (app.assignedTo !== adminId) {
-      throw new Error('You can only release applications assigned to you');
-    }
-
-    // Update application
-    await updateDoc(docRef, {
-      assignedTo: null,
-      assignedToMasjid: null,
-      assignedAt: null,
-      status: 'submitted',
-      updatedAt: serverTimestamp(),
-    });
-
-    // Add history entry
-    await addHistoryEntry(applicationId, {
-      action: 'released',
-      performedBy: adminId,
-      performedByName: adminName,
-      performedByRole: 'zakat_admin',
-      performedByMasjid: masjidId,
-      previousStatus: app.status,
-      newStatus: 'submitted',
-      previousAssignee: adminId,
-      newAssignee: null,
-      details: `Application released by ${adminName}`,
-    });
   } catch (error) {
     console.error('Error releasing application:', error);
     throw error;
@@ -287,47 +234,27 @@ export async function releaseApplication(
 
 /**
  * Change application status
+ * Calls the Cloud Function to properly process with notifications
  */
 export async function changeApplicationStatus(
   applicationId: string,
   newStatus: ApplicationStatus,
-  adminId: string,
-  adminName: string,
-  masjidId: string,
-  notes?: string
+  _adminId: string,
+  _adminName: string,
+  _masjidId: string,
+  reason?: string
 ): Promise<void> {
   try {
-    const docRef = doc(firebaseDb, APPLICATIONS_COLLECTION, applicationId);
-    const docSnap = await getDoc(docRef);
+    const changeStatusFn = httpsCallable<
+      { applicationId: string; newStatus: ApplicationStatus; reason?: string },
+      { success: boolean; data: { newStatus: ApplicationStatus } }
+    >(firebaseFunctions, 'changeApplicationStatus');
 
-    if (!docSnap.exists()) {
-      throw new Error('Application not found');
+    const result = await changeStatusFn({ applicationId, newStatus, reason });
+
+    if (!result.data.success) {
+      throw new Error('Failed to change application status');
     }
-
-    const app = docSnap.data() as ZakatApplication;
-
-    // Validate status transition
-    if (!isValidStatusTransition(app.status, newStatus)) {
-      throw new Error(`Invalid status transition from ${app.status} to ${newStatus}`);
-    }
-
-    // Update application
-    await updateDoc(docRef, {
-      status: newStatus,
-      updatedAt: serverTimestamp(),
-    });
-
-    // Add history entry
-    await addHistoryEntry(applicationId, {
-      action: 'status_changed',
-      performedBy: adminId,
-      performedByName: adminName,
-      performedByRole: 'zakat_admin',
-      performedByMasjid: masjidId,
-      previousStatus: app.status,
-      newStatus: newStatus,
-      details: notes || `Status changed from ${app.status} to ${newStatus}`,
-    });
   } catch (error) {
     console.error('Error changing application status:', error);
     throw error;
@@ -445,28 +372,6 @@ async function addHistoryEntry(
     console.error('Error adding history entry:', error);
     // Don't throw - history is supplementary
   }
-}
-
-/**
- * Check if status transition is valid
- */
-function isValidStatusTransition(
-  currentStatus: ApplicationStatus,
-  newStatus: ApplicationStatus
-): boolean {
-  const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
-    draft: ['submitted'],
-    submitted: ['under_review'],
-    under_review: ['pending_documents', 'pending_verification', 'approved', 'rejected', 'submitted'],
-    pending_documents: ['under_review', 'approved', 'rejected'],
-    pending_verification: ['under_review', 'approved', 'rejected'],
-    approved: ['disbursed', 'closed'],
-    rejected: ['closed'],
-    disbursed: ['closed'],
-    closed: [],
-  };
-
-  return validTransitions[currentStatus]?.includes(newStatus) || false;
 }
 
 /**
