@@ -285,8 +285,8 @@ export function DocumentsStep() {
   const ssnCard = watch('documents.ssnCard');
   const leaseAgreement = watch('documents.leaseAgreement');
 
-  // Get application ID from context or generate temporary one
-  const applicationId = watch('id') || `temp_${user?.uid || 'unknown'}`;
+  // Generate a temporary application ID for new applications based on user ID
+  const applicationId = `temp_${user?.uid || 'unknown'}`;
 
   const handleUpload = useCallback(
     async (docType: string, file: File): Promise<void> => {
