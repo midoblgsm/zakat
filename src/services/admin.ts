@@ -49,6 +49,7 @@ export async function getApplicationPool(
 ): Promise<ApplicationPoolResult> {
   try {
     const constraints: QueryConstraint[] = [];
+    const filterPoolClientSide = filters.assignedTo === null;
 
     // By default, get submitted applications that are not assigned
     if (filters.status) {
@@ -59,12 +60,9 @@ export async function getApplicationPool(
       constraints.push(where('status', '==', 'submitted'));
     }
 
-    // Filter by assignment status
-    if (filters.assignedTo === null) {
-      // Not assigned to anyone (in pool)
-      constraints.push(where('assignedTo', '==', null));
-    } else if (filters.assignedTo) {
-      // Assigned to specific admin
+    // Filter by assignment status - use client-side filtering for null to handle missing fields
+    if (filters.assignedTo && filters.assignedTo !== null) {
+      // Assigned to specific admin - can use Firestore filter
       constraints.push(where('assignedTo', '==', filters.assignedTo));
     }
 
@@ -73,12 +71,13 @@ export async function getApplicationPool(
       constraints.push(where('assignedToMasjid', '==', filters.assignedToMasjid));
     }
 
-    // Order by submission date
-    constraints.push(orderBy('submittedAt', 'desc'));
+    // Order by creation date (more reliable than submittedAt which might not exist)
+    constraints.push(orderBy('createdAt', 'desc'));
 
-    // Pagination
+    // Get more results if we need to filter client-side
     const pageLimit = filters.limit || 20;
-    constraints.push(firestoreLimit(pageLimit + 1)); // Get one extra to check if there are more
+    const fetchLimit = filterPoolClientSide ? (pageLimit + 1) * 3 : pageLimit + 1;
+    constraints.push(firestoreLimit(fetchLimit));
 
     if (filters.startAfterDoc) {
       constraints.push(startAfter(filters.startAfterDoc));
@@ -104,6 +103,13 @@ export async function getApplicationPool(
         submittedAt: data.submittedAt,
       } as ApplicationListItem;
     });
+
+    // Client-side filter for pool (unassigned) - handles both null and missing field
+    if (filterPoolClientSide) {
+      applications = applications.filter(
+        (app) => !app.assignedTo
+      );
+    }
 
     // Apply client-side search filter if provided
     if (filters.search) {
@@ -470,13 +476,14 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
   flaggedApplicants: number;
 }> {
   try {
-    // Get pool size (submitted, unassigned) - all admins can see pool
+    // Get pool size (submitted applications) - filter unassigned client-side
     const poolQuery = query(
       collection(firebaseDb, APPLICATIONS_COLLECTION),
-      where('status', '==', 'submitted'),
-      where('assignedTo', '==', null)
+      where('status', '==', 'submitted')
     );
     const poolSnapshot = await getDocs(poolQuery);
+    // Filter unassigned client-side (handles both null and missing field)
+    const poolSize = poolSnapshot.docs.filter(doc => !doc.data().assignedTo).length;
 
     // Get my cases (assigned to this admin)
     const myCasesQuery = query(
@@ -526,7 +533,7 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
     }
 
     return {
-      poolSize: poolSnapshot.size,
+      poolSize,
       myCases: myCasesSnapshot.size,
       pendingReview,
       flaggedApplicants,
