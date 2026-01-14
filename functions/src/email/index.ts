@@ -84,12 +84,37 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #1a56db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .highlight { background-color: #e0e7ff; padding: 15px; border-radius: 4px; margin: 15px 0; }
-    .steps { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    .header {
+      background-color: #1a56db;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .highlight {
+      background-color: #e0e7ff;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+    .steps {
+      background-color: white;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
     .steps li { margin: 10px 0; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -100,7 +125,8 @@ Zakat Management Team
     <div class="content">
       <p>Dear ${data.applicantName},</p>
       <div class="highlight">
-        <p><strong>Your Zakat application (${data.applicationNumber}) has been successfully submitted.</strong></p>
+        <p><strong>Your Zakat application (${data.applicationNumber})
+        has been successfully submitted.</strong></p>
       </div>
       <div class="steps">
         <h3>What happens next:</h3>
@@ -110,12 +136,12 @@ Zakat Management Team
           <li>You will be notified of the decision via email</li>
         </ol>
       </div>
-      <p>You can check your application status at any time by logging into your account.</p>
+      <p>You can check your application status at any time.</p>
       <p>Thank you for your application.</p>
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -148,10 +174,31 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #1a56db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .status-box { background-color: #fef3c7; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #f59e0b; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .header {
+      background-color: #1a56db;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .status-box {
+      background-color: #fef3c7;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #f59e0b;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -161,7 +208,8 @@ Zakat Management Team
     </div>
     <div class="content">
       <p>Dear ${data.applicantName},</p>
-      <p>Your Zakat application <strong>(${data.applicationNumber})</strong> status has been updated.</p>
+      <p>Your Zakat application <strong>(${data.applicationNumber})</strong>
+      status has been updated.</p>
       <div class="status-box">
         <p><strong>Previous Status:</strong> ${data.previousStatus}</p>
         <p><strong>New Status:</strong> ${data.newStatus}</p>
@@ -171,7 +219,7 @@ Zakat Management Team
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -190,7 +238,7 @@ Additional documents are needed for your Zakat application (${data.applicationNu
 Documents Requested:
 ${data.documentTypes}
 
-${data.message || "Please upload these documents as soon as possible to continue processing your application."}
+${data.message || "Please upload these documents as soon as possible."}
 
 Please log in to your account to upload the required documents.
 
@@ -204,11 +252,40 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .alert-box { background-color: #fef2f2; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #dc2626; }
-    .cta-button { display: inline-block; background-color: #1a56db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 15px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .header {
+      background-color: #dc2626;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .alert-box {
+      background-color: #fef2f2;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #dc2626;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #1a56db;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -219,16 +296,17 @@ Zakat Management Team
     <div class="content">
       <p>Dear ${data.applicantName},</p>
       <div class="alert-box">
-        <p><strong>Additional documents are needed for your application (${data.applicationNumber}).</strong></p>
+        <p><strong>Additional documents are needed for your application
+        (${data.applicationNumber}).</strong></p>
       </div>
       <h3>Documents Requested:</h3>
       <p>${data.documentTypes}</p>
-      <p>${data.message || "Please upload these documents as soon as possible to continue processing your application."}</p>
+      <p>${data.message || "Please upload these documents as soon as possible."}</p>
       <p>Please log in to your account to upload the required documents.</p>
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -246,7 +324,7 @@ Great news! Your Zakat application (${data.applicationNumber}) has been approved
 
 ${data.amountApproved ? `Approved Amount: $${data.amountApproved}` : ""}
 
-${data.message || "You will receive further instructions about the disbursement process."}
+${data.message || "You will receive further instructions about disbursement."}
 
 Thank you for your patience during the review process.
 
@@ -260,11 +338,33 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #059669; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .success-box { background-color: #d1fae5; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #059669; text-align: center; }
+    .header {
+      background-color: #059669;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .success-box {
+      background-color: #d1fae5;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #059669;
+      text-align: center;
+    }
     .amount { font-size: 24px; font-weight: bold; color: #059669; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -275,15 +375,16 @@ Zakat Management Team
     <div class="content">
       <p>Dear ${data.applicantName},</p>
       <div class="success-box">
-        <p><strong>Great news! Your application (${data.applicationNumber}) has been approved.</strong></p>
+        <p><strong>Great news! Your application (${data.applicationNumber})
+        has been approved.</strong></p>
         ${data.amountApproved ? `<p class="amount">$${data.amountApproved}</p>` : ""}
       </div>
-      <p>${data.message || "You will receive further instructions about the disbursement process."}</p>
+      <p>${data.message || "You will receive further instructions about disbursement."}</p>
       <p>Thank you for your patience during the review process.</p>
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -317,10 +418,31 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #6b7280; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .info-box { background-color: #f3f4f6; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #6b7280; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .header {
+      background-color: #6b7280;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .info-box {
+      background-color: #f3f4f6;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      border-left: 4px solid #6b7280;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -330,17 +452,19 @@ Zakat Management Team
     </div>
     <div class="content">
       <p>Dear ${data.applicantName},</p>
-      <p>Thank you for submitting your Zakat application <strong>(${data.applicationNumber})</strong>.</p>
+      <p>Thank you for submitting your Zakat application
+      <strong>(${data.applicationNumber})</strong>.</p>
       <div class="info-box">
-        <p>After careful review, we regret to inform you that your application has not been approved at this time.</p>
+        <p>After careful review, we regret to inform you that your
+        application has not been approved at this time.</p>
         ${data.reason ? `<p><strong>Reason:</strong> ${data.reason}</p>` : ""}
       </div>
-      <p>${data.message || "You may reapply after 6 months if your circumstances change."}</p>
+      <p>${data.message || "You may reapply after 6 months if circumstances change."}</p>
       <p>If you have questions about this decision, please contact us.</p>
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -373,12 +497,40 @@ Zakat Management Team
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #1a56db; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-    .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; }
-    .feature-list { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+    .header {
+      background-color: #1a56db;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background-color: #f9fafb;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+    }
+    .feature-list {
+      background-color: white;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
     .feature-list li { margin: 10px 0; }
-    .cta-button { display: inline-block; background-color: #1a56db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 15px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    .cta-button {
+      display: inline-block;
+      background-color: #1a56db;
+      color: white;
+      padding: 12px 24px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -401,7 +553,7 @@ Zakat Management Team
       <p>Best regards,<br>Zakat Management Team</p>
     </div>
     <div class="footer">
-      <p>This is an automated message. Please do not reply directly to this email.</p>
+      <p>This is an automated message. Please do not reply directly.</p>
     </div>
   </div>
 </body>
@@ -455,18 +607,18 @@ function getEmailTemplateForNotificationType(
   type: NotificationType
 ): EmailTemplate | null {
   switch (type) {
-    case "application_submitted":
-      return "application_submitted";
-    case "status_update":
-      return "application_status_change";
-    case "document_requested":
-      return "document_requested";
-    case "application_approved":
-      return "application_approved";
-    case "application_rejected":
-      return "application_rejected";
-    default:
-      return null;
+  case "application_submitted":
+    return "application_submitted";
+  case "status_update":
+    return "application_status_change";
+  case "document_requested":
+    return "document_requested";
+  case "application_approved":
+    return "application_approved";
+  case "application_rejected":
+    return "application_rejected";
+  default:
+    return null;
   }
 }
 
@@ -516,7 +668,10 @@ export const onNotificationCreated = onDocumentCreated(
     // Get application data if needed
     let applicationData: Record<string, unknown> = {};
     if (applicationId) {
-      const appDoc = await db.collection("applications").doc(applicationId).get();
+      const appDoc = await db
+        .collection("applications")
+        .doc(applicationId)
+        .get();
       if (appDoc.exists) {
         const app = appDoc.data();
         applicationData = {
