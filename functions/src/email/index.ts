@@ -592,7 +592,9 @@ export async function queueEmail(
 
   const emailDoc: EmailQueueDocument = {
     to,
-    from: options.from || "noreply@zakatplatform.org",
+    // FROM address must match a verified sender in your email provider (SendGrid/SMTP)
+    // The Firebase Trigger Email extension's default FROM will be used if not specified
+    from: options.from,
     replyTo: options.replyTo,
     message: {
       subject: templateConfig.subject(data),
