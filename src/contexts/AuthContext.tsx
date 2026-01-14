@@ -70,24 +70,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Function to load claims from token
   const loadClaims = useCallback(async (): Promise<CustomClaims | null> => {
     const tokenResult = await getIdTokenResult();
-    console.log('[Auth] Token result claims:', tokenResult?.claims);
     if (tokenResult?.claims) {
       const newClaims: CustomClaims = {
         role: tokenResult.claims.role as UserRole | undefined,
         masjidId: tokenResult.claims.masjidId as string | undefined,
       };
-      console.log('[Auth] Parsed claims:', newClaims);
       setClaims(newClaims);
       return newClaims;
     }
-    console.log('[Auth] No claims found in token');
     return null;
   }, []);
 
   // Subscribe to auth state changes
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (firebaseUser: FirebaseUser | null) => {
-      console.log('[Auth] Auth state changed, user:', firebaseUser?.uid ?? 'null');
       setLoading(true);
       try {
         if (firebaseUser) {
@@ -95,32 +91,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           // Fetch user profile
           const userProfile = await getUserProfile(firebaseUser.uid);
-          console.log('[Auth] User profile from Firestore:', userProfile);
-          console.log('[Auth] Profile role:', userProfile?.role);
           setProfile(userProfile);
 
           // Get custom claims for role
           const loadedClaims = await loadClaims();
-          console.log('[Auth] Final role determination:');
-          console.log('[Auth]   - Claims role:', loadedClaims?.role);
-          console.log('[Auth]   - Profile role:', userProfile?.role);
-          console.log('[Auth]   - Effective role:', loadedClaims?.role ?? userProfile?.role ?? 'null');
-
           if (loadedClaims?.role && userProfile) {
             // Update profile with role from claims if different
             if (loadedClaims.role !== userProfile.role) {
-              console.log('[Auth] Updating profile role from claims:', loadedClaims.role);
               setProfile({ ...userProfile, role: loadedClaims.role });
             }
           }
         } else {
-          console.log('[Auth] No user, clearing state');
           setUser(null);
           setProfile(null);
           setClaims(null);
         }
       } catch (err) {
-        console.error('[Auth] Error in auth state change:', err);
+        console.error('Error in auth state change:', err);
         setError('Failed to load user data');
       } finally {
         setLoading(false);
