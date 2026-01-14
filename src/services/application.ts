@@ -13,7 +13,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { firebaseDb } from './firebase';
-import type { ZakatApplication, ApplicationStatus } from '../types/application';
+import type { ZakatApplication, ApplicationStatus, ApplicationHistoryEntry } from '../types/application';
 import type { ApplicationFormData } from '../schemas/application';
 
 const APPLICATIONS_COLLECTION = 'applications';
@@ -511,4 +511,42 @@ function calculateTotalExpenses(
         return sum + amount;
     }
   }, 0);
+}
+
+/**
+ * Get application history for applicant view
+ * Returns only non-internal history entries
+ */
+export async function getApplicationHistory(
+  applicationId: string
+): Promise<ApplicationHistoryEntry[]> {
+  try {
+    const historyRef = collection(
+      firebaseDb,
+      APPLICATIONS_COLLECTION,
+      applicationId,
+      'history'
+    );
+    const q = query(historyRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+
+    // Filter out internal notes and sensitive admin actions
+    const filteredHistory = snapshot.docs
+      .map((doc) => doc.data() as ApplicationHistoryEntry)
+      .filter((entry) => {
+        // Hide internal note additions from applicants
+        if (
+          entry.action === 'note_added' &&
+          entry.metadata?.isInternal === true
+        ) {
+          return false;
+        }
+        return true;
+      });
+
+    return filteredHistory;
+  } catch (error) {
+    console.error('Error getting application history:', error);
+    throw error;
+  }
 }

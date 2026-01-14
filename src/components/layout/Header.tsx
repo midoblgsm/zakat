@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/common/Button';
+import { NotificationBell } from '@/components/common/NotificationBell';
 
 export function Header() {
   const { profile, logout } = useAuth();
@@ -26,6 +27,7 @@ export function Header() {
               Welcome, {profile.firstName} {profile.lastName}
             </span>
           )}
+          <NotificationBell />
           <Button variant="outline" size="sm" onClick={handleLogout}>
             Logout
           </Button>

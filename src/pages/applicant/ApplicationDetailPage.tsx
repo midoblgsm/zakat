@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeftIcon,
@@ -12,10 +12,11 @@ import { Card, CardHeader, CardContent } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { ApplicationTimeline } from '../../components/application/ApplicationTimeline';
 import { useAuth } from '../../contexts/AuthContext';
-import { getApplication } from '../../services/application';
+import { getApplication, getApplicationHistory } from '../../services/application';
 import { ROUTES, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '../../utils/constants';
-import type { ZakatApplication } from '../../types/application';
+import type { ZakatApplication, ApplicationHistoryEntry } from '../../types/application';
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -41,6 +42,31 @@ function getStatusIcon(status: string) {
       return <ExclamationTriangleIcon className="h-6 w-6 text-amber-500" />;
     default:
       return <ClockIcon className="h-6 w-6 text-blue-500" />;
+  }
+}
+
+function getStatusDescription(status: string): string {
+  switch (status) {
+    case 'draft':
+      return 'Your application is saved as a draft. Continue editing to submit.';
+    case 'submitted':
+      return 'Your application has been submitted and is waiting to be reviewed.';
+    case 'under_review':
+      return 'A reviewer is currently evaluating your application.';
+    case 'pending_documents':
+      return 'Additional documents are needed. Please check your email for details.';
+    case 'pending_verification':
+      return 'Your information is being verified. This may take a few days.';
+    case 'approved':
+      return 'Congratulations! Your application has been approved.';
+    case 'rejected':
+      return 'Unfortunately, your application was not approved at this time.';
+    case 'disbursed':
+      return 'Funds have been disbursed according to your approved application.';
+    case 'closed':
+      return 'This application has been closed.';
+    default:
+      return 'Status information not available.';
   }
 }
 
@@ -89,38 +115,46 @@ export function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [application, setApplication] = useState<ZakatApplication | null>(null);
+  const [history, setHistory] = useState<ApplicationHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadApplication() {
-      if (!id || !user) return;
+  const loadApplication = useCallback(async () => {
+    if (!id || !user) return;
 
-      try {
-        const app = await getApplication(id);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        if (!app) {
-          setError('Application not found');
-          return;
-        }
+      const [app, hist] = await Promise.all([
+        getApplication(id),
+        getApplicationHistory(id),
+      ]);
 
-        // Verify ownership
-        if (app.applicantId !== user.uid) {
-          setError('You do not have permission to view this application');
-          return;
-        }
-
-        setApplication(app);
-      } catch (err) {
-        setError('Failed to load application. Please try again.');
-        console.error('Error loading application:', err);
-      } finally {
-        setIsLoading(false);
+      if (!app) {
+        setError('Application not found');
+        return;
       }
-    }
 
-    loadApplication();
+      // Verify ownership
+      if (app.applicantId !== user.uid) {
+        setError('You do not have permission to view this application');
+        return;
+      }
+
+      setApplication(app);
+      setHistory(hist);
+    } catch (err) {
+      setError('Failed to load application. Please try again.');
+      console.error('Error loading application:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [id, user]);
+
+  useEffect(() => {
+    loadApplication();
+  }, [loadApplication]);
 
   if (isLoading) {
     return (
@@ -180,6 +214,36 @@ export function ApplicationDetailPage() {
         </div>
       </div>
 
+      {/* Status Card */}
+      <Card className="mb-6">
+        <CardContent>
+          <div className="flex items-start gap-4">
+            <div
+              className={`flex-shrink-0 p-3 rounded-full ${
+                application.status === 'approved' || application.status === 'disbursed'
+                  ? 'bg-green-100'
+                  : application.status === 'rejected'
+                  ? 'bg-red-100'
+                  : application.status === 'pending_documents' ||
+                    application.status === 'pending_verification'
+                  ? 'bg-amber-100'
+                  : 'bg-blue-100'
+              }`}
+            >
+              {getStatusIcon(application.status)}
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                {APPLICATION_STATUS_LABELS[application.status] || application.status}
+              </h3>
+              <p className="mt-1 text-sm text-gray-600">
+                {getStatusDescription(application.status)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Status-specific alerts */}
       {application.status === 'pending_documents' && (
         <Alert variant="warning" className="mb-6">
@@ -203,6 +267,23 @@ export function ApplicationDetailPage() {
           {application.resolution.rejectionReason ||
             'Your application did not meet the eligibility criteria. You may reapply after 6 months.'}
         </Alert>
+      )}
+
+      {/* Application Timeline */}
+      {history.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader
+            title="Application Timeline"
+            description="Track the progress of your application"
+          />
+          <CardContent>
+            <ApplicationTimeline
+              history={history}
+              showDetailed={false}
+              maxItems={10}
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Request Summary */}
@@ -346,8 +427,13 @@ export function ApplicationDetailPage() {
               <span className="text-sm text-gray-700">
                 Photo ID - {application.documents.photoId.fileName}
               </span>
-              {application.documents.photoId.verified && (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+              {application.documents.photoId.verified ? (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Verified
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600">Pending verification</span>
               )}
             </div>
           )}
@@ -357,8 +443,13 @@ export function ApplicationDetailPage() {
               <span className="text-sm text-gray-700">
                 SSN Card - {application.documents.ssnCard.fileName}
               </span>
-              {application.documents.ssnCard.verified && (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+              {application.documents.ssnCard.verified ? (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Verified
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600">Pending verification</span>
               )}
             </div>
           )}
@@ -368,8 +459,13 @@ export function ApplicationDetailPage() {
               <span className="text-sm text-gray-700">
                 Lease Agreement - {application.documents.leaseAgreement.fileName}
               </span>
-              {application.documents.leaseAgreement.verified && (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+              {application.documents.leaseAgreement.verified ? (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Verified
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600">Pending verification</span>
               )}
             </div>
           )}
@@ -377,11 +473,23 @@ export function ApplicationDetailPage() {
             <div key={index} className="flex items-center gap-3">
               <DocumentTextIcon className="h-5 w-5 text-gray-400" />
               <span className="text-sm text-gray-700">{doc.fileName}</span>
-              {doc.verified && (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+              {doc.verified ? (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Verified
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600">Pending verification</span>
               )}
             </div>
           ))}
+          {!application.documents?.photoId &&
+            !application.documents?.ssnCard &&
+            !application.documents?.leaseAgreement &&
+            (!application.documents?.otherDocuments ||
+              application.documents.otherDocuments.length === 0) && (
+              <p className="text-sm text-gray-500">No documents uploaded</p>
+            )}
         </div>
       </Section>
 
@@ -406,24 +514,45 @@ export function ApplicationDetailPage() {
 
       {/* Admin Notes (if any are external/visible to applicant) */}
       {application.adminNotes && application.adminNotes.some((n) => !n.isInternal) && (
-        <Section title="Notes from Review Team">
-          <div className="space-y-4">
-            {application.adminNotes
-              .filter((note) => !note.isInternal)
-              .map((note) => (
-                <div
-                  key={note.id}
-                  className="bg-gray-50 rounded-lg p-4"
-                >
-                  <p className="text-sm text-gray-700">{note.content}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {new Date(note.createdAt.seconds * 1000).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-          </div>
-        </Section>
+        <Card className="mb-6">
+          <CardHeader
+            title="Notes from Review Team"
+            description="Messages from the administrators reviewing your application"
+          />
+          <CardContent>
+            <div className="space-y-4">
+              {application.adminNotes
+                .filter((note) => !note.isInternal)
+                .map((note) => (
+                  <div
+                    key={note.id}
+                    className="bg-blue-50 rounded-lg p-4 border border-blue-100"
+                  >
+                    <p className="text-sm text-gray-700">{note.content}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(note.createdAt.seconds * 1000).toLocaleDateString()} at{' '}
+                      {new Date(note.createdAt.seconds * 1000).toLocaleTimeString()}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Help Section */}
+      <Card className="mb-6 bg-gray-50">
+        <CardContent>
+          <h3 className="text-sm font-medium text-gray-900 mb-2">
+            Need Help?
+          </h3>
+          <p className="text-sm text-gray-600">
+            If you have questions about your application or need to provide
+            additional information, please contact the masjid directly or reply
+            to any email notifications you've received.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -100,3 +100,8 @@ export {
   getUnreadNotificationCount,
   getUserNotifications,
 } from "./notifications";
+
+// Email functions (triggered by Firestore)
+export {
+  onNotificationCreated,
+} from "./email";
