@@ -12,7 +12,8 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import { firebaseDb } from './firebase';
+import { httpsCallable } from 'firebase/functions';
+import { firebaseDb, firebaseFunctions } from './firebase';
 import type { ZakatApplication, ApplicationStatus, ApplicationHistoryEntry } from '../types/application';
 import type { ApplicationFormData } from '../schemas/application';
 
@@ -139,16 +140,22 @@ export async function saveDraftApplication(
 
 /**
  * Submit application (change status from draft to submitted)
+ * Calls the Cloud Function to properly process submission with notifications
  */
-export async function submitApplication(applicationId: string): Promise<void> {
+export async function submitApplication(applicationId: string): Promise<string> {
   try {
-    const docRef = doc(firebaseDb, APPLICATIONS_COLLECTION, applicationId);
+    const submitApplicationFn = httpsCallable<
+      { applicationId: string },
+      { success: boolean; data: { applicationNumber: string } }
+    >(firebaseFunctions, 'submitApplication');
 
-    await updateDoc(docRef, {
-      status: 'submitted' as ApplicationStatus,
-      submittedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    const result = await submitApplicationFn({ applicationId });
+
+    if (!result.data.success) {
+      throw new Error('Failed to submit application');
+    }
+
+    return result.data.data.applicationNumber;
   } catch (error) {
     console.error('Error submitting application:', error);
     throw error;
