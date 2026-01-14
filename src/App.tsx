@@ -91,6 +91,7 @@ function App() {
           <Route path="masajid/:id" element={<MasjidDetailPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="applications" element={<SuperAdminApplicationsPage />} />
+          <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
         </Route>
 
         {/* 404 */}
