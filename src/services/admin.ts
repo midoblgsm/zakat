@@ -223,7 +223,7 @@ export async function claimApplication(
       performedByMasjid: masjidId,
       previousStatus: app.status,
       newStatus: 'under_review',
-      previousAssignee: undefined,
+      previousAssignee: null,
       newAssignee: adminId,
       details: `Application claimed by ${adminName}`,
     });
@@ -276,7 +276,7 @@ export async function releaseApplication(
       previousStatus: app.status,
       newStatus: 'submitted',
       previousAssignee: adminId,
-      newAssignee: undefined,
+      newAssignee: null,
       details: `Application released by ${adminName}`,
     });
   } catch (error) {
