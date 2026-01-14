@@ -132,9 +132,9 @@ service cloud.firestore {
     }
 
     // ============================================
-    // MASJIDS COLLECTION
+    // MASAJID COLLECTION
     // ============================================
-    match /masjids/{masjidId} {
+    match /masajid/{masjidId} {
       // Anyone authenticated can read masjid info (for registration)
       allow read: if isAuthenticated();
 
