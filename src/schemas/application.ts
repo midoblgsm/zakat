@@ -312,9 +312,13 @@ export const zakatRequestSchema = z.object({
     .string()
     .min(20, 'Please provide a detailed reason (at least 20 characters)')
     .max(2000, 'Reason is too long (max 2000 characters)'),
-  assistanceType: z.enum(['monthly', 'one_time'], {
-    required_error: 'Please select assistance type',
-  }),
+  assistanceType: z.preprocess(
+    (val) => (val === null || val === '' ? undefined : val),
+    z.enum(['monthly', 'one_time'], {
+      required_error: 'Please select assistance type',
+      invalid_type_error: 'Please select assistance type',
+    })
+  ),
   monthlyDuration: nanToUndefined(
     z.number({ invalid_type_error: 'Duration must be a number' })
       .min(1, 'Duration must be at least 1 month')
