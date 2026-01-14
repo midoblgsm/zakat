@@ -16,7 +16,7 @@ import { firebaseStorage } from './firebase';
 /**
  * Allowed file types for document uploads
  */
-export const ALLOWED_FILE_TYPES = {
+export const ALLOWED_FILE_TYPES: Record<string, string[]> = {
   documents: [
     'application/pdf',
     'image/jpeg',
@@ -35,7 +35,7 @@ export const ALLOWED_FILE_TYPES = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ],
-} as const;
+};
 
 /**
  * File size limits in bytes

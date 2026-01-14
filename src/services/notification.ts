@@ -18,7 +18,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { firebaseDb } from './firebase';
-import type { Notification, NotificationType, CreateNotificationInput } from '../types/notification';
+import type { Notification, NotificationType } from '../types/notification';
 
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
