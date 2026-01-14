@@ -139,6 +139,8 @@ export function ApplicationPoolPage() {
         status: statuses,
         search: searchTerm || undefined,
         assignedTo: statusFilter === 'pool' ? null : undefined,
+        // When viewing 'all', filter by masjid for zakat_admin (they can only see their masjid's applications)
+        assignedToMasjid: statusFilter === 'all' && claims?.masjidId ? claims.masjidId : undefined,
       });
 
       setApplications(result.applications);
@@ -148,7 +150,7 @@ export function ApplicationPoolPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, searchTerm, claims?.masjidId]);
 
   useEffect(() => {
     loadApplications();
