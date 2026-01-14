@@ -7,7 +7,11 @@
  * - Custom email sending function (if configured)
  */
 
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import {
+  onDocumentCreated,
+  FirestoreEvent,
+  QueryDocumentSnapshot,
+} from "firebase-functions/v2/firestore";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { NotificationType } from "../notifications";
@@ -628,7 +632,9 @@ function getEmailTemplateForNotificationType(
  */
 export const onNotificationCreated = onDocumentCreated(
   "notifications/{notificationId}",
-  async (event) => {
+  async (
+    event: FirestoreEvent<QueryDocumentSnapshot | undefined, { notificationId: string }>
+  ) => {
     const notification = event.data?.data();
 
     if (!notification) {
