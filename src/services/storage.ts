@@ -380,7 +380,7 @@ export async function fileExists(storagePath: string): Promise<boolean> {
     const storageRef = ref(firebaseStorage, storagePath);
     await getMetadata(storageRef);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

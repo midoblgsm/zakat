@@ -9,7 +9,6 @@ import {
   BellIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ExclamationTriangleIcon,
   DocumentArrowUpIcon,
   UserPlusIcon,
   ArrowPathIcon,

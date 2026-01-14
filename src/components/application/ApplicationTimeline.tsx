@@ -7,7 +7,6 @@ import {
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ExclamationTriangleIcon,
   DocumentTextIcon,
   UserPlusIcon,
   ArrowPathIcon,

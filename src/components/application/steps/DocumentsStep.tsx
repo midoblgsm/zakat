@@ -19,12 +19,9 @@ import {
   deleteFile,
   getFileDownloadUrl,
   formatFileSize,
-  getFileTypeCategory,
 } from '../../../services/storage';
 import {
   validateFile,
-  isImageFile,
-  isPdfFile,
   getReadableFileType,
 } from '../../../utils/fileValidation';
 import type { DocumentsFormData } from '../../../schemas/application';
