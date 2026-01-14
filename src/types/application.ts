@@ -321,8 +321,8 @@ export interface ApplicationHistoryEntry {
   performedByMasjid?: string;
   previousStatus?: ApplicationStatus;
   newStatus?: ApplicationStatus;
-  previousAssignee?: string;
-  newAssignee?: string;
+  previousAssignee?: string | null;
+  newAssignee?: string | null;
   details: string;
   metadata?: Record<string, unknown>;
   createdAt: Timestamp;
