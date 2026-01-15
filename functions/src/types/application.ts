@@ -135,6 +135,8 @@ export interface ZakatApplication {
   status: ApplicationStatus;
   assignedTo?: string;
   assignedToMasjid?: string;
+  assignedToMasjidName?: string;
+  assignedToMasjidZipCode?: string;
   assignedAt?: Timestamp;
   adminNotes: AdminNote[];
   resolution?: ApplicationResolution;

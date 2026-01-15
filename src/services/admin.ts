@@ -96,6 +96,8 @@ export async function getApplicationPool(
         status: data.status,
         assignedTo: data.assignedTo,
         assignedToMasjid: data.assignedToMasjid,
+        assignedToMasjidName: data.assignedToMasjidName,
+        assignedToMasjidZipCode: data.assignedToMasjidZipCode,
         zakatRequest: {
           assistanceType: data.zakatRequest?.assistanceType || 'one_time',
           amountRequested: data.zakatRequest?.amountRequested || 0,
@@ -499,6 +501,8 @@ export async function getAllApplications(
         status: data.status,
         assignedTo: data.assignedTo,
         assignedToMasjid: data.assignedToMasjid,
+        assignedToMasjidName: data.assignedToMasjidName,
+        assignedToMasjidZipCode: data.assignedToMasjidZipCode,
         zakatRequest: {
           assistanceType: data.zakatRequest?.assistanceType || 'one_time',
           amountRequested: data.zakatRequest?.amountRequested || 0,

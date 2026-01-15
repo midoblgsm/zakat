@@ -87,7 +87,16 @@ function ApplicationRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {application.assignedToMasjid ? (
-          <span className="text-gray-900">{application.assignedToMasjid}</span>
+          <div>
+            <span className="text-gray-900">
+              {application.assignedToMasjidName || application.assignedToMasjid}
+            </span>
+            {application.assignedToMasjidZipCode && (
+              <span className="text-gray-500 ml-1">
+                ({application.assignedToMasjidZipCode})
+              </span>
+            )}
+          </div>
         ) : (
           <span className="text-gray-400 italic">Unassigned</span>
         )}
