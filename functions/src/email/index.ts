@@ -664,6 +664,7 @@ export const onNotificationCreated = onDocumentCreated(
       applicationId,
       previousStatus,
       newStatus,
+      documentTypes,
     } = notification;
 
     // Determine if this notification type should trigger an email
@@ -724,6 +725,7 @@ export const onNotificationCreated = onDocumentCreated(
     };
     if (previousStatus) templateData.previousStatus = previousStatus;
     if (newStatus) templateData.newStatus = newStatus;
+    if (documentTypes) templateData.documentTypes = documentTypes;
 
     try {
       await queueEmail(user.email, emailTemplate, templateData);
