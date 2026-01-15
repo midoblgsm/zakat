@@ -686,7 +686,7 @@ export const onNotificationCreated = onDocumentCreated(
     }
 
     // Get application data if needed
-    let applicationData: Record<string, unknown> = {};
+    const applicationData: Record<string, unknown> = {};
     if (applicationId) {
       const appDoc = await db
         .collection("applications")
