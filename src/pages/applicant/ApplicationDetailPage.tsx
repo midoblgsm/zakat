@@ -13,6 +13,7 @@ import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ApplicationTimeline } from '../../components/application/ApplicationTimeline';
+import { DocumentUploadSection } from '../../components/application/DocumentUploadSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApplication, getApplicationHistory } from '../../services/application';
 import { ROUTES, APPLICATION_STATUS_LABELS, APPLICATION_STATUS_COLORS } from '../../utils/constants';
@@ -248,9 +249,18 @@ export function ApplicationDetailPage() {
       {application.status === 'pending_documents' && (
         <Alert variant="warning" className="mb-6">
           <strong>Action Required:</strong> Additional documents are needed to
-          process your application. Please check your email for specific
-          requirements.
+          process your application. Please upload the requested documents below.
         </Alert>
+      )}
+
+      {/* Document Upload Section - shown when there are pending document requests */}
+      {['pending_documents', 'under_review', 'pending_verification'].includes(
+        application.status
+      ) && (
+        <DocumentUploadSection
+          applicationId={application.id}
+          onUploadComplete={loadApplication}
+        />
       )}
 
       {application.status === 'approved' && application.resolution && (
