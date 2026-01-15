@@ -69,7 +69,7 @@ export async function createDraftApplication(
   userId: string,
   userEmail: string,
   userName: string,
-  userPhone: string
+  userPhone?: string
 ): Promise<string> {
   try {
     const docRef = doc(collection(firebaseDb, APPLICATIONS_COLLECTION));
@@ -81,7 +81,7 @@ export async function createDraftApplication(
       applicantSnapshot: {
         name: userName,
         email: userEmail,
-        phone: userPhone,
+        phone: userPhone || '',
         isFlagged: false,
       },
       status: 'draft',

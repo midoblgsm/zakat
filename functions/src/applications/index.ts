@@ -298,6 +298,7 @@ export const assignApplication = onCall(
     }
 
     const previousAssignee = application.assignedTo;
+    const previousMasjidId = application.assignedToMasjid;
 
     // Update application
     const newStatus: ApplicationStatus =
@@ -312,6 +313,26 @@ export const assignApplication = onCall(
       status: newStatus,
       updatedAt: Timestamp.now(),
     });
+
+    // Update masjid stats when application is newly assigned
+    if (application.status === "submitted" && targetMasjidId) {
+      // New assignment - increment the target masjid's in-progress count
+      const masjidRef = db.collection("masajid").doc(targetMasjidId);
+      await masjidRef.update({
+        "stats.applicationsInProgress": FieldValue.increment(1),
+      });
+    } else if (previousMasjidId && targetMasjidId &&
+               previousMasjidId !== targetMasjidId) {
+      // Reassignment to different masjid - decrement old, increment new
+      const oldMasjidRef = db.collection("masajid").doc(previousMasjidId);
+      const newMasjidRef = db.collection("masajid").doc(targetMasjidId);
+      await oldMasjidRef.update({
+        "stats.applicationsInProgress": FieldValue.increment(-1),
+      });
+      await newMasjidRef.update({
+        "stats.applicationsInProgress": FieldValue.increment(1),
+      });
+    }
 
     // Create history entry
     const userInfo = await getUserInfo(auth.uid);
@@ -429,6 +450,7 @@ export const releaseApplication = onCall(
     }
 
     const previousAssignee = application.assignedTo;
+    const previousMasjidId = application.assignedToMasjid;
 
     // Update application
     await applicationRef.update({
@@ -440,6 +462,14 @@ export const releaseApplication = onCall(
       status: "submitted",
       updatedAt: Timestamp.now(),
     });
+
+    // Decrement masjid's in-progress count when releasing
+    if (previousMasjidId) {
+      const masjidRef = db.collection("masajid").doc(previousMasjidId);
+      await masjidRef.update({
+        "stats.applicationsInProgress": FieldValue.increment(-1),
+      });
+    }
 
     // Create history entry
     const userInfo = await getUserInfo(auth.uid);
