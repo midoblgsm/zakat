@@ -39,6 +39,13 @@ interface DocumentRequest {
   fulfilledAt?: { seconds: number };
   fulfilledBy?: string;
   storagePath?: string;
+  fileName?: string;
+  // Verification status
+  verified?: boolean;
+  verifiedBy?: string;
+  verifiedByName?: string;
+  verifiedAt?: { seconds: number };
+  verificationNotes?: string;
 }
 
 interface DocumentVerificationPanelProps {
@@ -51,6 +58,34 @@ interface DocumentVerificationPanelProps {
   };
   canVerify: boolean;
   onUpdate: () => void;
+}
+
+/**
+ * Safely format a Firestore timestamp to a localized date string.
+ * Handles different timestamp formats from Cloud Functions.
+ */
+function formatTimestamp(timestamp: unknown): string {
+  if (!timestamp) return 'Unknown date';
+
+  // Handle object with seconds property (standard Firestore timestamp)
+  if (typeof timestamp === 'object' && timestamp !== null) {
+    const ts = timestamp as Record<string, unknown>;
+    // Check for seconds or _seconds (different serialization formats)
+    const seconds = ts.seconds ?? ts._seconds;
+    if (typeof seconds === 'number') {
+      return new Date(seconds * 1000).toLocaleDateString();
+    }
+  }
+
+  // Handle if it's already a Date or number
+  if (timestamp instanceof Date) {
+    return timestamp.toLocaleDateString();
+  }
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  return 'Unknown date';
 }
 
 export function DocumentVerificationPanel({
@@ -72,6 +107,7 @@ export function DocumentVerificationPanel({
     type: string;
     path: string;
     fileName: string;
+    requestId?: string; // For documents from documentRequests subcollection
   } | null>(null);
   const [previewDocument, setPreviewDocument] = useState<{
     fileName: string;
@@ -151,18 +187,31 @@ export function DocumentVerificationPanel({
     setError(null);
 
     try {
-      const verifyDocument = httpsCallable(firebaseFunctions, 'verifyDocument');
-      await verifyDocument({
-        applicationId,
-        documentPath: selectedDocument.path,
-        verified,
-        notes: verifyNotes,
-      });
+      if (selectedDocument.requestId) {
+        // Verify document from documentRequests subcollection
+        const verifyRequestedDocument = httpsCallable(firebaseFunctions, 'verifyRequestedDocument');
+        await verifyRequestedDocument({
+          applicationId,
+          requestId: selectedDocument.requestId,
+          verified,
+          notes: verifyNotes,
+        });
+      } else {
+        // Verify document from main application documents
+        const verifyDocument = httpsCallable(firebaseFunctions, 'verifyDocument');
+        await verifyDocument({
+          applicationId,
+          documentPath: selectedDocument.path,
+          verified,
+          notes: verifyNotes,
+        });
+      }
 
       setSuccess(verified ? 'Document verified successfully' : 'Document rejected');
       setShowVerifyModal(false);
       setSelectedDocument(null);
       setVerifyNotes('');
+      await loadDocumentRequests(); // Reload to show updated verification status
       onUpdate();
     } catch (err) {
       console.error('Error verifying document:', err);
@@ -183,8 +232,8 @@ export function DocumentVerificationPanel({
     }
   };
 
-  const openVerifyModal = (type: string, path: string, fileName: string) => {
-    setSelectedDocument({ type, path, fileName });
+  const openVerifyModal = (type: string, path: string, fileName: string, requestId?: string) => {
+    setSelectedDocument({ type, path, fileName, requestId });
     setShowVerifyModal(true);
   };
 
@@ -202,18 +251,37 @@ export function DocumentVerificationPanel({
   };
 
   const getRequestStatusBadge = (request: DocumentRequest) => {
-    if (request.fulfilledAt) {
+    if (!request.fulfilledAt) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-          <CheckCircleIcon className="h-3 w-3 mr-1" />
-          Fulfilled
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+          <ClockIcon className="h-3 w-3 mr-1" />
+          Awaiting Upload
         </span>
       );
     }
+
+    // Document has been uploaded, check verification status
+    if (request.verified === true) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircleIcon className="h-3 w-3 mr-1" />
+          Verified
+        </span>
+      );
+    } else if (request.verified === false) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+          <XCircleIcon className="h-3 w-3 mr-1" />
+          Rejected
+        </span>
+      );
+    }
+
+    // Uploaded but not yet verified
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
         <ClockIcon className="h-3 w-3 mr-1" />
-        Pending
+        Pending Review
       </span>
     );
   };
@@ -377,8 +445,7 @@ export function DocumentVerificationPanel({
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Requested by {request.requestedByName} on{' '}
-                      {new Date(request.requestedAt.seconds * 1000).toLocaleDateString()}
+                      Requested by {request.requestedByName} on {formatTimestamp(request.requestedAt)}
                     </p>
                   </div>
                   {request.fulfilledAt && request.storagePath && (
@@ -402,7 +469,7 @@ export function DocumentVerificationPanel({
                       >
                         <ArrowDownTrayIcon className="h-4 w-4" />
                       </Button>
-                      {canVerify && (
+                      {canVerify && !request.verified && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -410,7 +477,8 @@ export function DocumentVerificationPanel({
                             openVerifyModal(
                               request.documentType,
                               request.storagePath!,
-                              DOCUMENT_TYPES.find(d => d.value === request.documentType)?.label || request.documentType
+                              DOCUMENT_TYPES.find(d => d.value === request.documentType)?.label || request.documentType,
+                              request.id // Pass the request ID for requested documents
                             )
                           }
                         >
