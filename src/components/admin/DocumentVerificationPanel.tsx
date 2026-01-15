@@ -16,6 +16,7 @@ import { Button } from '@/components/common/Button';
 import { Modal, ModalFooter } from '@/components/common/Modal';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { DocumentPreview } from '@/components/common/DocumentPreview';
 import { DOCUMENT_TYPES } from '@/schemas/masjid';
 
 interface DocumentFile {
@@ -64,10 +65,16 @@ export function DocumentVerificationPanel({
   // Modal states
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     path: string;
     fileName: string;
+  } | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<{
+    fileName: string;
+    storagePath: string;
+    contentType?: string;
   } | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -179,6 +186,19 @@ export function DocumentVerificationPanel({
     setShowVerifyModal(true);
   };
 
+  const openPreviewModal = (fileName: string, storagePath: string) => {
+    // Determine content type from file extension
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    let contentType = 'application/octet-stream';
+    if (ext === 'pdf') contentType = 'application/pdf';
+    else if (['jpg', 'jpeg'].includes(ext || '')) contentType = 'image/jpeg';
+    else if (ext === 'png') contentType = 'image/png';
+    else if (ext === 'webp') contentType = 'image/webp';
+
+    setPreviewDocument({ fileName, storagePath, contentType });
+    setShowPreviewModal(true);
+  };
+
   const getRequestStatusBadge = (request: DocumentRequest) => {
     if (request.fulfilledAt) {
       return (
@@ -226,18 +246,18 @@ export function DocumentVerificationPanel({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDownloadDocument(doc.storagePath)}
-            title="Download"
+            onClick={() => openPreviewModal(doc.fileName, doc.storagePath)}
+            title="Preview"
           >
-            <ArrowDownTrayIcon className="h-4 w-4" />
+            <EyeIcon className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => handleDownloadDocument(doc.storagePath)}
-            title="Preview"
+            title="Download"
           >
-            <EyeIcon className="h-4 w-4" />
+            <ArrowDownTrayIcon className="h-4 w-4" />
           </Button>
           {canVerify && !doc.verified && (
             <Button
@@ -344,7 +364,19 @@ export function DocumentVerificationPanel({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => openPreviewModal(
+                          DOCUMENT_TYPES.find(d => d.value === request.documentType)?.label || request.documentType,
+                          request.storagePath!
+                        )}
+                        title="Preview"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDownloadDocument(request.storagePath!)}
+                        title="Download"
                       >
                         <ArrowDownTrayIcon className="h-4 w-4" />
                       </Button>
@@ -356,7 +388,7 @@ export function DocumentVerificationPanel({
                             openVerifyModal(
                               request.documentType,
                               request.storagePath!,
-                              request.documentType
+                              DOCUMENT_TYPES.find(d => d.value === request.documentType)?.label || request.documentType
                             )
                           }
                         >
@@ -452,10 +484,17 @@ export function DocumentVerificationPanel({
             <div className="flex gap-2">
               <Button
                 variant="outline"
+                onClick={() => openPreviewModal(selectedDocument.fileName, selectedDocument.path)}
+              >
+                <EyeIcon className="h-4 w-4 mr-2" />
+                Preview Document
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => handleDownloadDocument(selectedDocument.path)}
               >
                 <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                Download to Review
+                Download
               </Button>
             </div>
 
@@ -492,6 +531,20 @@ export function DocumentVerificationPanel({
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Document Preview Modal */}
+      {showPreviewModal && previewDocument && (
+        <DocumentPreview
+          fileName={previewDocument.fileName}
+          storagePath={previewDocument.storagePath}
+          contentType={previewDocument.contentType}
+          onClose={() => {
+            setShowPreviewModal(false);
+            setPreviewDocument(null);
+          }}
+          isModal={true}
+        />
+      )}
     </>
   );
 }
