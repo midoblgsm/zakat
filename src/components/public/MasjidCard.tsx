@@ -9,6 +9,7 @@ interface MasjidCardProps {
 
 export function MasjidCard({ masjid, className }: MasjidCardProps) {
   const primaryColor = masjid.primaryColor || '#4F46E5';
+  const secondaryColor = masjid.secondaryColor || primaryColor;
 
   return (
     <div
@@ -17,25 +18,34 @@ export function MasjidCard({ masjid, className }: MasjidCardProps) {
         className
       )}
     >
-      {/* Branding stripe at top */}
+      {/* Branding gradient stripe at top */}
       <div
         className="h-2"
-        style={{ backgroundColor: primaryColor }}
+        style={{
+          background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`,
+        }}
       />
 
       <div className="p-6">
         {/* Logo and name */}
         <div className="flex items-start gap-4">
           {masjid.logo ? (
-            <img
-              src={masjid.logo}
-              alt={`${masjid.name} logo`}
-              className="h-16 w-16 rounded-lg object-cover ring-1 ring-gray-200"
-            />
+            <div
+              className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg p-2"
+              style={{ backgroundColor: `${primaryColor}08` }}
+            >
+              <img
+                src={masjid.logo}
+                alt={`${masjid.name} logo`}
+                className="max-h-16 max-w-16 rounded object-contain"
+              />
+            </div>
           ) : (
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-lg text-white text-xl font-bold"
-              style={{ backgroundColor: primaryColor }}
+              className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg text-white text-2xl font-bold"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+              }}
             >
               {masjid.name.charAt(0).toUpperCase()}
             </div>
@@ -45,7 +55,7 @@ export function MasjidCard({ masjid, className }: MasjidCardProps) {
               {masjid.name}
             </h3>
             <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
-              <MapPinIcon className="h-4 w-4 flex-shrink-0" />
+              <MapPinIcon className="h-4 w-4 flex-shrink-0" style={{ color: primaryColor }} />
               <span className="truncate">
                 {masjid.address.city}, {masjid.address.state}
               </span>
@@ -79,18 +89,19 @@ export function MasjidCard({ masjid, className }: MasjidCardProps) {
               href={masjid.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700"
+              className="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity"
+              style={{ color: primaryColor }}
             >
               <GlobeAltIcon className="h-4 w-4" />
               <span className="truncate">{masjid.website.replace(/^https?:\/\//, '')}</span>
             </a>
           )}
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <PhoneIcon className="h-4 w-4" />
+            <PhoneIcon className="h-4 w-4" style={{ color: secondaryColor }} />
             <span>{masjid.phone}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <EnvelopeIcon className="h-4 w-4" />
+            <EnvelopeIcon className="h-4 w-4" style={{ color: secondaryColor }} />
             <span className="truncate">{masjid.email}</span>
           </div>
         </div>
@@ -100,7 +111,11 @@ export function MasjidCard({ masjid, className }: MasjidCardProps) {
           {masjid.zakatConfig.assistanceTypes.map((type) => (
             <span
               key={type}
-              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-700"
+              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              style={{
+                backgroundColor: `${primaryColor}15`,
+                color: primaryColor,
+              }}
             >
               {type === 'monthly' && 'Monthly Assistance'}
               {type === 'one_time' && 'One-time Assistance'}
@@ -109,8 +124,11 @@ export function MasjidCard({ masjid, className }: MasjidCardProps) {
           ))}
         </div>
 
-        {/* Full address on hover/focus */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        {/* Full address */}
+        <div
+          className="mt-4 pt-4 border-t"
+          style={{ borderColor: `${primaryColor}20` }}
+        >
           <p className="text-xs text-gray-500">
             {masjid.address.street}, {masjid.address.city}, {masjid.address.state} {masjid.address.zipCode}
           </p>
