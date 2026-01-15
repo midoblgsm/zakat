@@ -31,6 +31,13 @@ export interface DocumentRequest {
   fulfilledAt?: { seconds: number };
   fulfilledBy?: string;
   storagePath?: string;
+  fileName?: string;
+  // Verification status
+  verified?: boolean;
+  verifiedBy?: string;
+  verifiedByName?: string;
+  verifiedAt?: { seconds: number };
+  verificationNotes?: string;
 }
 
 const APPLICATIONS_COLLECTION = 'applications';
@@ -606,11 +613,12 @@ export async function getDocumentRequests(
 export async function fulfillDocumentRequest(
   applicationId: string,
   requestId: string,
-  storagePath: string
+  storagePath: string,
+  fileName?: string
 ): Promise<void> {
   try {
     const fulfillDocumentRequestFn = httpsCallable<
-      { applicationId: string; requestId: string; storagePath: string },
+      { applicationId: string; requestId: string; storagePath: string; fileName?: string },
       { success: boolean }
     >(firebaseFunctions, 'fulfillDocumentRequest');
 
@@ -618,6 +626,7 @@ export async function fulfillDocumentRequest(
       applicationId,
       requestId,
       storagePath,
+      ...(fileName && { fileName }),
     });
 
     if (!result.data.success) {
