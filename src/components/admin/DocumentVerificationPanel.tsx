@@ -223,6 +223,31 @@ export function DocumentVerificationPanel({
   ) => {
     if (!doc) return null;
 
+    // Determine verification status badge
+    const getVerificationBadge = () => {
+      if (doc.verified === true) {
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+            <CheckCircleIcon className="h-3 w-3 mr-1" />
+            Verified
+          </span>
+        );
+      } else if (doc.verified === false) {
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+            <XCircleIcon className="h-3 w-3 mr-1" />
+            Rejected
+          </span>
+        );
+      } else {
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+            Unverified
+          </span>
+        );
+      }
+    };
+
     return (
       <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
         <div className="flex items-center gap-3">
@@ -231,16 +256,7 @@ export function DocumentVerificationPanel({
             <p className="text-sm font-medium text-gray-900">{label}</p>
             <p className="text-xs text-gray-500">{doc.fileName}</p>
           </div>
-          {doc.verified ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-              <CheckCircleIcon className="h-3 w-3 mr-1" />
-              Verified
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-              Unverified
-            </span>
-          )}
+          {getVerificationBadge()}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -259,13 +275,13 @@ export function DocumentVerificationPanel({
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
           </Button>
-          {canVerify && !doc.verified && (
+          {canVerify && doc.verified !== true && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => openVerifyModal(type, doc.storagePath, doc.fileName)}
             >
-              Verify
+              {doc.verified === false ? 'Re-verify' : 'Verify'}
             </Button>
           )}
         </div>
