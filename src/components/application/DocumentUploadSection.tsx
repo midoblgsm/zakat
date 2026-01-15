@@ -40,6 +40,34 @@ interface PreviewDocument {
   storagePath: string;
 }
 
+/**
+ * Safely format a Firestore timestamp to a localized date string.
+ * Handles different timestamp formats from Cloud Functions.
+ */
+function formatTimestamp(timestamp: unknown): string {
+  if (!timestamp) return 'Unknown date';
+
+  // Handle object with seconds property (standard Firestore timestamp)
+  if (typeof timestamp === 'object' && timestamp !== null) {
+    const ts = timestamp as Record<string, unknown>;
+    // Check for seconds or _seconds (different serialization formats)
+    const seconds = ts.seconds ?? ts._seconds;
+    if (typeof seconds === 'number') {
+      return new Date(seconds * 1000).toLocaleDateString();
+    }
+  }
+
+  // Handle if it's already a Date or number
+  if (timestamp instanceof Date) {
+    return timestamp.toLocaleDateString();
+  }
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  return 'Unknown date';
+}
+
 export function DocumentUploadSection({
   applicationId,
   onUploadComplete,
@@ -339,10 +367,7 @@ export function DocumentUploadSection({
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                Requested on{' '}
-                                {new Date(
-                                  request.requestedAt.seconds * 1000
-                                ).toLocaleDateString()}
+                                Requested on {formatTimestamp(request.requestedAt)}
                               </span>
                             </div>
                           </div>
@@ -431,17 +456,11 @@ export function DocumentUploadSection({
                             </p>
                           )}
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Uploaded on{' '}
-                            {new Date(
-                              request.fulfilledAt!.seconds * 1000
-                            ).toLocaleDateString()}
+                            Uploaded on {formatTimestamp(request.fulfilledAt)}
                           </p>
                           {request.verified === true && request.verifiedAt && (
                             <p className="text-xs text-green-600 mt-0.5">
-                              Verified on{' '}
-                              {new Date(
-                                request.verifiedAt.seconds * 1000
-                              ).toLocaleDateString()}
+                              Verified on {formatTimestamp(request.verifiedAt)}
                               {request.verifiedByName && ` by ${request.verifiedByName}`}
                             </p>
                           )}

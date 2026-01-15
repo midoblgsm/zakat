@@ -60,6 +60,34 @@ interface DocumentVerificationPanelProps {
   onUpdate: () => void;
 }
 
+/**
+ * Safely format a Firestore timestamp to a localized date string.
+ * Handles different timestamp formats from Cloud Functions.
+ */
+function formatTimestamp(timestamp: unknown): string {
+  if (!timestamp) return 'Unknown date';
+
+  // Handle object with seconds property (standard Firestore timestamp)
+  if (typeof timestamp === 'object' && timestamp !== null) {
+    const ts = timestamp as Record<string, unknown>;
+    // Check for seconds or _seconds (different serialization formats)
+    const seconds = ts.seconds ?? ts._seconds;
+    if (typeof seconds === 'number') {
+      return new Date(seconds * 1000).toLocaleDateString();
+    }
+  }
+
+  // Handle if it's already a Date or number
+  if (timestamp instanceof Date) {
+    return timestamp.toLocaleDateString();
+  }
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  return 'Unknown date';
+}
+
 export function DocumentVerificationPanel({
   applicationId,
   documents,
@@ -417,8 +445,7 @@ export function DocumentVerificationPanel({
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Requested by {request.requestedByName} on{' '}
-                      {new Date(request.requestedAt.seconds * 1000).toLocaleDateString()}
+                      Requested by {request.requestedByName} on {formatTimestamp(request.requestedAt)}
                     </p>
                   </div>
                   {request.fulfilledAt && request.storagePath && (
