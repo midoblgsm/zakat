@@ -438,7 +438,7 @@ export async function getRecentActivity(
         action,
         applicationNumber: app.applicationNumber,
         date: app.updatedAt?.toDate().toLocaleDateString() || 'Unknown',
-        masjidName: app.assignedToMasjidName,
+        masjidName: app.assignedToMasjidName ?? undefined,
       };
     });
   } catch (error) {
@@ -501,7 +501,7 @@ export async function getFlagAnalytics(): Promise<{
     let resolved = 0;
     let warning = 0;
     let blocked = 0;
-    const byMasjidMap: Record<string, { name: string; count: number }> = {};
+    const byMasjidMap: Record<string, { masjidName: string; count: number }> = {};
 
     const allFlags = snapshot.docs.map((doc) => doc.data() as ApplicantFlag);
 
@@ -517,7 +517,7 @@ export async function getFlagAnalytics(): Promise<{
       if (flag.flaggedByMasjid) {
         if (!byMasjidMap[flag.flaggedByMasjid]) {
           byMasjidMap[flag.flaggedByMasjid] = {
-            name: flag.flaggedByMasjidName || flag.flaggedByMasjid,
+            masjidName: flag.flaggedByMasjidName || flag.flaggedByMasjid,
             count: 0,
           };
         }
