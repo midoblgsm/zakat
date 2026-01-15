@@ -56,11 +56,44 @@
     ],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000; includeSubDomains"
+          }
+        ]
+      },
+      {
         "source": "**/*.@(js|css)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=31536000"
+            "value": "max-age=31536000, immutable"
           }
         ]
       },
@@ -69,7 +102,16 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=31536000"
+            "value": "max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
           }
         ]
       }
