@@ -694,11 +694,16 @@ export const onNotificationCreated = onDocumentCreated(
         .get();
       if (appDoc.exists) {
         const app = appDoc.data();
-        applicationData = {
-          applicationNumber: app?.applicationNumber,
-          amountApproved: app?.resolution?.amountApproved,
-          reason: app?.resolution?.rejectionReason,
-        };
+        // Only include defined values to avoid Firestore errors
+        if (app?.applicationNumber) {
+          applicationData.applicationNumber = app.applicationNumber;
+        }
+        if (app?.resolution?.amountApproved !== undefined) {
+          applicationData.amountApproved = app.resolution.amountApproved;
+        }
+        if (app?.resolution?.rejectionReason) {
+          applicationData.reason = app.resolution.rejectionReason;
+        }
       }
     }
 
