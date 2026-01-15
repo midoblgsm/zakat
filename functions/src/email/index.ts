@@ -656,7 +656,15 @@ export const onNotificationCreated = onDocumentCreated(
       return;
     }
 
-    const { userId, type, title, message, applicationId } = notification;
+    const {
+      userId,
+      type,
+      title,
+      message,
+      applicationId,
+      previousStatus,
+      newStatus,
+    } = notification;
 
     // Determine if this notification type should trigger an email
     const emailTemplate = getEmailTemplateForNotificationType(type);
@@ -707,14 +715,18 @@ export const onNotificationCreated = onDocumentCreated(
       }
     }
 
-    // Queue the email
+    // Queue the email - build template data with only defined values
+    const templateData: Record<string, unknown> = {
+      applicantName: `${user.firstName} ${user.lastName}`,
+      title,
+      message,
+      ...applicationData,
+    };
+    if (previousStatus) templateData.previousStatus = previousStatus;
+    if (newStatus) templateData.newStatus = newStatus;
+
     try {
-      await queueEmail(user.email, emailTemplate, {
-        applicantName: `${user.firstName} ${user.lastName}`,
-        title,
-        message,
-        ...applicationData,
-      });
+      await queueEmail(user.email, emailTemplate, templateData);
 
       logger.info(`Email queued for notification: ${event.params.notificationId}`);
     } catch (error) {
