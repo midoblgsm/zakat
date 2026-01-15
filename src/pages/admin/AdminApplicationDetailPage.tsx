@@ -455,20 +455,16 @@ export function AdminApplicationDetailPage() {
   const handleFlagApplicant = async (reason: string, severity: FlagSeverity) => {
     if (!application) return;
 
-    try {
-      await createFlag({
-        applicantId: application.applicantId,
-        applicationId: application.id,
-        reason,
-        severity,
-      });
+    await createFlag({
+      applicantId: application.applicantId,
+      applicationId: application.id,
+      reason,
+      severity,
+    });
 
-      setSuccessMessage('Applicant flagged successfully. This flag is now visible across all masajid.');
-      setIsFlagModalOpen(false);
-      await loadApplication();
-    } catch (err) {
-      throw err; // Let the modal handle the error
-    }
+    setSuccessMessage('Applicant flagged successfully. This flag is now visible across all masajid.');
+    setIsFlagModalOpen(false);
+    await loadApplication();
   };
 
   if (isLoading) {
