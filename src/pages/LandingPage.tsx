@@ -16,6 +16,9 @@ export function LandingPage() {
             <span className="text-xl font-bold text-gray-900">Zakat Portal</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link to="/masajid">
+              <Button variant="ghost">Our Masajid</Button>
+            </Link>
             <Link to="/login">
               <Button variant="outline">Sign In</Button>
             </Link>
