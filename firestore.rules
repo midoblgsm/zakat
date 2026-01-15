@@ -135,8 +135,9 @@ service cloud.firestore {
     // MASAJID COLLECTION
     // ============================================
     match /masajid/{masjidId} {
-      // Anyone authenticated can read masjid info (for registration)
-      allow read: if isAuthenticated();
+      // Public read access for active masajid (for public listing page)
+      // This allows unauthenticated users to view the masajid directory
+      allow read: if true;
 
       // Only super admins can create/update/delete masjids
       allow create, update, delete: if isSuperAdmin();
