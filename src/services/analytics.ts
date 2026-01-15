@@ -73,7 +73,7 @@ export interface DashboardAnalytics {
 
 const APPLICATIONS_COLLECTION = 'applications';
 const FLAGS_COLLECTION = 'flags';
-const MASJIDS_COLLECTION = 'masjids';
+const MASAJID_COLLECTION = 'masajid';
 
 /**
  * Get comprehensive application statistics
@@ -267,7 +267,7 @@ export async function getStatusDistribution(): Promise<{ status: string; count: 
  */
 export async function getMasjidStats(): Promise<MasjidStats[]> {
   try {
-    const masjidsRef = collection(firebaseDb, MASJIDS_COLLECTION);
+    const masjidsRef = collection(firebaseDb, MASAJID_COLLECTION);
     const masjidsSnapshot = await getDocs(masjidsRef);
 
     const masjidStatsPromises = masjidsSnapshot.docs.map(async (doc) => {
