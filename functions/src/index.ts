@@ -78,6 +78,7 @@ export {
   requestDocuments,
   fulfillDocumentRequest,
   verifyDocument,
+  verifyRequestedDocument,
   getDocumentRequests,
 } from "./applications/documents";
 

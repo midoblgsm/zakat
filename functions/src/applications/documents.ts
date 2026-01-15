@@ -225,6 +225,7 @@ export const fulfillDocumentRequest = onCall(
       applicationId: string;
       requestId: string;
       storagePath: string;
+      fileName?: string;
     }>
   ): Promise<FunctionResponse> => {
     const { auth, data } = request;
@@ -233,7 +234,7 @@ export const fulfillDocumentRequest = onCall(
       throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
-    const { applicationId, requestId, storagePath } = data;
+    const { applicationId, requestId, storagePath, fileName } = data;
 
     if (!applicationId || !requestId || !storagePath) {
       throw new HttpsError(
@@ -277,6 +278,7 @@ export const fulfillDocumentRequest = onCall(
       fulfilledAt: Timestamp.now(),
       fulfilledBy: auth.uid,
       storagePath,
+      ...(fileName && { fileName }),
     });
 
     // Check if all required documents are fulfilled
@@ -452,6 +454,131 @@ export const verifyDocument = onCall(
       details: verified
         ? `Document verified: ${documentPath}`
         : `Document rejected: ${documentPath}${notes ? ` - ${notes}` : ""}`,
+      metadata: verifyMetadata,
+    });
+
+    // If document rejected, notify applicant
+    if (!verified) {
+      const issueMsg = `There is an issue with a document you uploaded for ` +
+        `application ${application.applicationNumber}. ` +
+        (notes || "Please check and re-upload.");
+      await db.collection("notifications").add({
+        userId: application.applicantId,
+        type: "document_requested",
+        title: "Document Issue",
+        message: issueMsg,
+        applicationId,
+        read: false,
+        createdAt: Timestamp.now(),
+      });
+    }
+
+    return { success: true };
+  }
+);
+
+// ============================================
+// VERIFY REQUESTED DOCUMENT
+// ============================================
+
+/**
+ * Verify a document uploaded for a document request
+ * Admin marks document as verified or rejected
+ */
+export const verifyRequestedDocument = onCall(
+  async (
+    request: CallableRequest<{
+      applicationId: string;
+      requestId: string;
+      verified: boolean;
+      notes?: string;
+    }>
+  ): Promise<FunctionResponse> => {
+    const { auth, data } = request;
+
+    if (!auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const claims = auth.token as unknown as CustomClaims;
+    validateAdmin(claims);
+
+    const { applicationId, requestId, verified, notes } = data;
+
+    if (!applicationId || !requestId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Application ID and request ID are required"
+      );
+    }
+
+    const applicationRef = db.collection("applications").doc(applicationId);
+    const applicationDoc = await applicationRef.get();
+
+    if (!applicationDoc.exists) {
+      throw new HttpsError("not-found", "Application not found");
+    }
+
+    const application = applicationDoc.data() as ZakatApplication;
+
+    // Check permissions
+    if (
+      claims.role !== "super_admin" &&
+      application.assignedTo !== auth.uid &&
+      application.assignedToMasjid !== claims.masjidId
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "You don't have permission to verify documents for this application"
+      );
+    }
+
+    // Get the document request
+    const requestRef = applicationRef.collection("documentRequests").doc(requestId);
+    const requestDoc = await requestRef.get();
+
+    if (!requestDoc.exists) {
+      throw new HttpsError("not-found", "Document request not found");
+    }
+
+    const documentRequest = requestDoc.data() as DocumentRequest;
+
+    if (!documentRequest.fulfilledAt) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Cannot verify a document that has not been uploaded"
+      );
+    }
+
+    // Get user info for verification
+    const userInfo = await getUserInfo(auth.uid);
+
+    // Update the document request with verification status
+    await requestRef.update({
+      verified,
+      verifiedBy: auth.uid,
+      verifiedByName: userInfo.name,
+      verifiedAt: Timestamp.now(),
+      ...(notes && { verificationNotes: notes }),
+    });
+
+    // Create history entry
+    const verifyMetadata: Record<string, unknown> = {
+      requestId,
+      documentType: documentRequest.documentType,
+      verified,
+    };
+    if (notes) verifyMetadata.notes = notes;
+
+    await createHistoryEntry(applicationId, {
+      action: "document_verified",
+      performedBy: auth.uid,
+      performedByName: userInfo.name,
+      performedByRole: userInfo.role,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
+      details: verified
+        ? `Document verified: ${documentRequest.documentType}`
+        : `Document rejected: ${documentRequest.documentType}${notes ? ` - ${notes}` : ""}`,
       metadata: verifyMetadata,
     });
 

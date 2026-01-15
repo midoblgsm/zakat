@@ -122,6 +122,13 @@ export interface DocumentRequest {
   fulfilledAt?: Timestamp;
   fulfilledBy?: string;
   storagePath?: string;
+  fileName?: string;
+  // Verification status
+  verified?: boolean;
+  verifiedBy?: string;
+  verifiedByName?: string;
+  verifiedAt?: Timestamp;
+  verificationNotes?: string;
 }
 
 /**
