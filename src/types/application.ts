@@ -268,6 +268,8 @@ export interface ZakatApplication {
   status: ApplicationStatus;
   assignedTo?: string | null;
   assignedToMasjid?: string | null;
+  assignedToMasjidName?: string | null;
+  assignedToMasjidZipCode?: string | null;
   assignedAt?: Timestamp;
 
   // Form Sections
@@ -338,6 +340,8 @@ export interface ApplicationListItem {
   status: ApplicationStatus;
   assignedTo?: string | null;
   assignedToMasjid?: string | null;
+  assignedToMasjidName?: string | null;
+  assignedToMasjidZipCode?: string | null;
   zakatRequest: {
     assistanceType: 'monthly' | 'one_time';
     amountRequested: number;

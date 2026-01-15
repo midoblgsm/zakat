@@ -523,8 +523,17 @@ export function AdminApplicationDetailPage() {
                 Assigned to:{' '}
                 {isAssignedToMe ? (
                   <span className="font-medium text-primary-600">You</span>
+                ) : application.assignedToMasjidName ? (
+                  <span className="font-medium text-gray-700">
+                    {application.assignedToMasjidName}
+                    {application.assignedToMasjidZipCode && (
+                      <span className="text-gray-500 ml-1">
+                        ({application.assignedToMasjidZipCode})
+                      </span>
+                    )}
+                  </span>
                 ) : (
-                  application.assignedTo
+                  <span className="text-gray-500">{application.assignedToMasjid || 'Unknown'}</span>
                 )}
               </p>
             )}

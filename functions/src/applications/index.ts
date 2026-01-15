@@ -285,6 +285,18 @@ export const assignApplication = onCall(
       targetMasjidId = (targetUserClaims.customClaims as CustomClaims)?.masjidId;
     }
 
+    // Fetch masjid details to denormalize name and zip code
+    let targetMasjidName: string | null = null;
+    let targetMasjidZipCode: string | null = null;
+    if (targetMasjidId) {
+      const masjidDoc = await db.collection("masajid").doc(targetMasjidId).get();
+      if (masjidDoc.exists) {
+        const masjidData = masjidDoc.data();
+        targetMasjidName = masjidData?.name || null;
+        targetMasjidZipCode = masjidData?.address?.zipCode || null;
+      }
+    }
+
     const previousAssignee = application.assignedTo;
 
     // Update application
@@ -294,6 +306,8 @@ export const assignApplication = onCall(
     await applicationRef.update({
       assignedTo: targetUserId,
       assignedToMasjid: targetMasjidId || null,
+      assignedToMasjidName: targetMasjidName,
+      assignedToMasjidZipCode: targetMasjidZipCode,
       assignedAt: Timestamp.now(),
       status: newStatus,
       updatedAt: Timestamp.now(),
@@ -420,6 +434,8 @@ export const releaseApplication = onCall(
     await applicationRef.update({
       assignedTo: FieldValue.delete(),
       assignedToMasjid: FieldValue.delete(),
+      assignedToMasjidName: FieldValue.delete(),
+      assignedToMasjidZipCode: FieldValue.delete(),
       assignedAt: FieldValue.delete(),
       status: "submitted",
       updatedAt: Timestamp.now(),
