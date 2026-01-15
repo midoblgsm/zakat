@@ -24,6 +24,8 @@ interface DocumentFile {
   storagePath: string;
   uploadedAt: { seconds: number };
   verified?: boolean;
+  verifiedBy?: string;
+  verifiedAt?: { seconds: number };
 }
 
 interface DocumentRequest {
@@ -224,6 +226,7 @@ export function DocumentVerificationPanel({
     if (!doc) return null;
 
     // Determine verification status badge
+    // Check verifiedBy to distinguish between "not yet reviewed" and "explicitly rejected"
     const getVerificationBadge = () => {
       if (doc.verified === true) {
         return (
@@ -232,7 +235,8 @@ export function DocumentVerificationPanel({
             Verified
           </span>
         );
-      } else if (doc.verified === false) {
+      } else if (doc.verified === false && doc.verifiedBy) {
+        // Only show "Rejected" if it was explicitly rejected (has verifiedBy)
         return (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
             <XCircleIcon className="h-3 w-3 mr-1" />
@@ -240,9 +244,11 @@ export function DocumentVerificationPanel({
           </span>
         );
       } else {
+        // Default state: not yet reviewed
         return (
           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-            Unverified
+            <ClockIcon className="h-3 w-3 mr-1" />
+            Pending verification
           </span>
         );
       }
@@ -281,7 +287,7 @@ export function DocumentVerificationPanel({
               size="sm"
               onClick={() => openVerifyModal(type, doc.storagePath, doc.fileName)}
             >
-              {doc.verified === false ? 'Re-verify' : 'Verify'}
+              {doc.verified === false && doc.verifiedBy ? 'Re-verify' : 'Verify'}
             </Button>
           )}
         </div>
