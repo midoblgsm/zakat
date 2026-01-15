@@ -11,12 +11,16 @@ import {
   ArrowPathIcon,
   PencilSquareIcon,
   ChatBubbleLeftRightIcon,
+  FlagIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal, ModalFooter } from '@/components/common/Modal';
+import { FlagApplicantModal } from '@/components/flags/FlagApplicantModal';
+import { createFlag } from '@/services/flag';
+import type { FlagSeverity } from '@/types/flag';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   getApplicationForAdmin,
@@ -309,6 +313,7 @@ export function AdminApplicationDetailPage() {
   // Modal states
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isFlagModalOpen, setIsFlagModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Action states
@@ -447,6 +452,25 @@ export function AdminApplicationDetailPage() {
     }
   };
 
+  const handleFlagApplicant = async (reason: string, severity: FlagSeverity) => {
+    if (!application) return;
+
+    try {
+      await createFlag({
+        applicantId: application.applicantId,
+        applicationId: application.id,
+        reason,
+        severity,
+      });
+
+      setSuccessMessage('Applicant flagged successfully. This flag is now visible across all masajid.');
+      setIsFlagModalOpen(false);
+      await loadApplication();
+    } catch (err) {
+      throw err; // Let the modal handle the error
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -482,6 +506,7 @@ export function AdminApplicationDetailPage() {
   const canRelease = isAssignedToMe && hasMasjidId;
   const canChangeStatus = isAssignedToMe && application.status !== 'submitted' && hasMasjidId;
   const canAddNote = (isAssignedToMe || isSuperAdmin) && hasMasjidId;
+  const canFlag = (isAssignedToMe || isSuperAdmin) && !application.applicantSnapshot.isFlagged;
 
   const submittedDate = application.submittedAt?.toDate
     ? application.submittedAt.toDate()
@@ -595,6 +620,16 @@ export function AdminApplicationDetailPage() {
               >
                 <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2" />
                 Add Note
+              </Button>
+            )}
+            {canFlag && (
+              <Button
+                variant="outline"
+                onClick={() => setIsFlagModalOpen(true)}
+                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+              >
+                <FlagIcon className="h-4 w-4 mr-2" />
+                Flag Applicant
               </Button>
             )}
           </div>
@@ -971,6 +1006,15 @@ export function AdminApplicationDetailPage() {
         onClose={() => setIsNoteModalOpen(false)}
         onSubmit={handleAddNote}
         isSubmitting={isSubmitting}
+      />
+
+      <FlagApplicantModal
+        isOpen={isFlagModalOpen}
+        onClose={() => setIsFlagModalOpen(false)}
+        onSubmit={handleFlagApplicant}
+        applicantName={application.applicantSnapshot.name}
+        applicantEmail={application.applicantSnapshot.email}
+        applicationNumber={application.applicationNumber}
       />
     </div>
   );
