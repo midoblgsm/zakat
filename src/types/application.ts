@@ -19,6 +19,7 @@ export type ApplicationStatus =
  * Applicant snapshot (denormalized for quick access)
  */
 export interface ApplicantSnapshot {
+  id?: string; // Applicant user ID for cross-reference
   name: string;
   email: string;
   phone: string;

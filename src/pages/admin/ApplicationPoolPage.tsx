@@ -4,7 +4,6 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   UserPlusIcon,
-  ExclamationTriangleIcon,
   ClockIcon,
   EyeIcon,
 } from '@heroicons/react/24/outline';
@@ -12,6 +11,7 @@ import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { FlagIndicator } from '@/components/flags';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApplicationPool, claimApplication } from '@/services/admin';
 import {
@@ -69,10 +69,13 @@ function ApplicationRow({
             </div>
           </div>
           {application.applicantSnapshot.isFlagged && (
-            <ExclamationTriangleIcon
-              className="ml-2 h-5 w-5 text-red-500"
-              title="Flagged applicant"
-            />
+            <div className="ml-2">
+              <FlagIndicator
+                applicantId={application.applicantSnapshot.id || ''}
+                isFlagged={application.applicantSnapshot.isFlagged}
+                size="sm"
+              />
+            </div>
           )}
         </div>
       </td>
