@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
+/* Custom base styles - WCAG 2.1 Accessibility Enhancements */
 @layer base {
   html {
     @apply scroll-smooth;
@@ -10,6 +10,39 @@
 
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
+  }
+
+  /* Accessibility: Visible focus styles for all interactive elements (WCAG 2.1 Level AA) */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-600;
+  }
+
+  /* Accessibility: Reduced motion preference (WCAG 2.1 Level AAA) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Accessibility: High contrast mode support */
+  @media (prefers-contrast: high) {
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      border: 2px solid currentColor !important;
+    }
+
+    .btn-primary,
+    .btn-danger {
+      @apply border-2 border-current;
+    }
   }
 
   /* Form input base styles */
@@ -22,8 +55,13 @@
   textarea,
   select {
     @apply rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm transition-colors;
-    @apply focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500;
+    @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500;
     @apply disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500;
+  }
+
+  /* Ensure form labels meet color contrast requirements (WCAG 2.1 Level AA - 4.5:1) */
+  label {
+    @apply text-gray-700;
   }
 }
 

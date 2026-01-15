@@ -165,10 +165,16 @@ export function Sidebar() {
   const navItems = userRole ? navItemsByRole[userRole] : [];
 
   return (
-    <aside className="w-64 border-r border-gray-200 bg-white">
+    <aside
+      className="w-64 border-r border-gray-200 bg-white"
+      aria-label="Primary sidebar"
+    >
       <div className="flex h-16 items-center border-b border-gray-200 px-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"
+            aria-hidden="true"
+          >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -176,8 +182,12 @@ export function Sidebar() {
           <span className="font-semibold text-gray-900">Zakat Portal</span>
         </div>
       </div>
-      <nav className="p-4">
-        <ul className="space-y-1">
+      <nav
+        id="primary-navigation"
+        className="p-4"
+        aria-label="Main navigation"
+      >
+        <ul className="space-y-1" role="list">
           {navItems.map((item) => (
             <li key={item.path}>
               <NavLink
@@ -186,14 +196,20 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
                     isActive
                       ? 'bg-primary-50 text-primary-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   )
                 }
               >
-                {item.icon}
-                {item.label}
+                {({ isActive }) => (
+                  <>
+                    <span aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {isActive && <span className="sr-only">(current page)</span>}
+                  </>
+                )}
               </NavLink>
             </li>
           ))}
