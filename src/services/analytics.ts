@@ -21,6 +21,50 @@ import { firebaseDb } from './firebase';
 import type { ApplicationStatus, ZakatApplication } from '../types/application';
 import type { ApplicantFlag } from '../types/flag';
 
+/**
+ * Safely convert a Firestore timestamp to a Date object.
+ * Handles different timestamp formats from Firestore/Cloud Functions serialization:
+ * - Native Timestamp objects with toDate() method
+ * - Plain objects with seconds/nanoseconds or _seconds/_nanoseconds
+ * - Date objects
+ * - Numeric timestamps
+ * Returns null if conversion fails.
+ */
+function timestampToDate(timestamp: unknown): Date | null {
+  if (!timestamp) return null;
+
+  // Handle native Firestore Timestamp with toDate method
+  if (typeof timestamp === 'object' && timestamp !== null) {
+    // Check for toDate method (native Firestore Timestamp)
+    if ('toDate' in timestamp && typeof (timestamp as { toDate: unknown }).toDate === 'function') {
+      try {
+        return (timestamp as Timestamp).toDate();
+      } catch {
+        // Fall through to other methods
+      }
+    }
+
+    // Handle serialized timestamp objects with seconds property
+    const ts = timestamp as Record<string, unknown>;
+    const seconds = ts.seconds ?? ts._seconds;
+    if (typeof seconds === 'number') {
+      return new Date(seconds * 1000);
+    }
+  }
+
+  // Handle Date objects
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // Handle numeric timestamps (milliseconds)
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp);
+  }
+
+  return null;
+}
+
 // Types for analytics data
 export interface ApplicationStats {
   total: number;
@@ -209,8 +253,9 @@ export async function getApplicationsOverTime(days: number = 30): Promise<TimeSe
 
     snapshot.docs.forEach((doc) => {
       const app = doc.data() as ZakatApplication;
-      if (app.createdAt) {
-        const date = app.createdAt.toDate().toISOString().split('T')[0];
+      const createdDate = timestampToDate(app.createdAt);
+      if (createdDate) {
+        const date = createdDate.toISOString().split('T')[0];
         if (countsByDate[date] !== undefined) {
           countsByDate[date]++;
         }
@@ -348,10 +393,11 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
     completedSnapshot.docs.forEach((doc) => {
       const app = doc.data() as ZakatApplication;
 
-      // Calculate processing time
-      if (app.submittedAt && app.resolution?.decidedAt) {
-        const submitted = app.submittedAt.toDate();
-        const decided = app.resolution.decidedAt.toDate();
+      // Calculate processing time using safe timestamp conversion
+      const submitted = timestampToDate(app.submittedAt);
+      const decided = timestampToDate(app.resolution?.decidedAt);
+
+      if (submitted && decided) {
         const days = Math.ceil((decided.getTime() - submitted.getTime()) / (1000 * 60 * 60 * 24));
         if (days >= 0) {
           processingTimes.push(days);
@@ -359,11 +405,10 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
       }
 
       // Count by month
-      if (app.resolution?.decidedAt) {
-        const decidedDate = app.resolution.decidedAt.toDate();
-        if (decidedDate >= thisMonthStart) {
+      if (decided) {
+        if (decided >= thisMonthStart) {
           thisMonthCount++;
-        } else if (decidedDate >= lastMonthStart && decidedDate <= lastMonthEnd) {
+        } else if (decided >= lastMonthStart && decided <= lastMonthEnd) {
           lastMonthCount++;
         }
       }
@@ -434,10 +479,11 @@ export async function getRecentActivity(
         action = 'Disbursed';
       }
 
+      const updatedDate = timestampToDate(app.updatedAt);
       return {
         action,
         applicationNumber: app.applicationNumber,
-        date: app.updatedAt?.toDate().toLocaleDateString() || 'Unknown',
+        date: updatedDate?.toLocaleDateString() || 'Unknown',
         masjidName: app.assignedToMasjidName ?? undefined,
       };
     });
@@ -528,8 +574,8 @@ export async function getFlagAnalytics(): Promise<{
     // Sort flags by createdAt for recent flags
     const recentFlags = allFlags
       .sort((a, b) => {
-        const aTime = a.createdAt?.toMillis?.() || 0;
-        const bTime = b.createdAt?.toMillis?.() || 0;
+        const aTime = timestampToDate(a.createdAt)?.getTime() || 0;
+        const bTime = timestampToDate(b.createdAt)?.getTime() || 0;
         return bTime - aTime;
       })
       .slice(0, 5);
