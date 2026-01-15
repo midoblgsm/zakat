@@ -18,7 +18,7 @@ import { Button } from '@/components/common/Button';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal, ModalFooter } from '@/components/common/Modal';
-import { FlagApplicantModal } from '@/components/flags/FlagApplicantModal';
+import { FlagApplicantModal, FlagAlertBanner } from '@/components/flags';
 import { createFlag } from '@/services/flag';
 import type { FlagSeverity } from '@/types/flag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -581,6 +581,16 @@ export function AdminApplicationDetailPage() {
         <Alert variant="error" className="mb-6" onClose={() => setError(null)}>
           {error}
         </Alert>
+      )}
+
+      {/* Cross-Masjid Flag Alert */}
+      {application.applicantSnapshot.isFlagged && (
+        <div className="mb-6">
+          <FlagAlertBanner
+            applicantId={application.applicantId}
+            applicantName={application.applicantSnapshot.name}
+          />
+        </div>
       )}
 
       {/* Admin Actions */}

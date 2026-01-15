@@ -92,7 +92,10 @@ export async function getApplicationPool(
       return {
         id: data.id,
         applicationNumber: data.applicationNumber,
-        applicantSnapshot: data.applicantSnapshot,
+        applicantSnapshot: {
+          ...data.applicantSnapshot,
+          id: data.applicantId, // Include applicantId for cross-masjid flag lookup
+        },
         status: data.status,
         assignedTo: data.assignedTo,
         assignedToMasjid: data.assignedToMasjid,
@@ -497,7 +500,10 @@ export async function getAllApplications(
       return {
         id: data.id,
         applicationNumber: data.applicationNumber,
-        applicantSnapshot: data.applicantSnapshot,
+        applicantSnapshot: {
+          ...data.applicantSnapshot,
+          id: data.applicantId, // Include applicantId for cross-masjid flag lookup
+        },
         status: data.status,
         assignedTo: data.assignedTo,
         assignedToMasjid: data.assignedToMasjid,
