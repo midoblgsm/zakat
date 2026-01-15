@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { MasjidNameDisplay } from '@/components/common/MasjidNameDisplay';
 import { getAllApplications } from '@/services/admin';
 import {
   APPLICATION_STATUS_LABELS,
@@ -87,16 +88,11 @@ function ApplicationRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {application.assignedToMasjid ? (
-          <div>
-            <span className="text-gray-900">
-              {application.assignedToMasjidName || application.assignedToMasjid}
-            </span>
-            {application.assignedToMasjidZipCode && (
-              <span className="text-gray-500 ml-1">
-                ({application.assignedToMasjidZipCode})
-              </span>
-            )}
-          </div>
+          <MasjidNameDisplay
+            masjidId={application.assignedToMasjid}
+            masjidName={application.assignedToMasjidName}
+            zipCode={application.assignedToMasjidZipCode}
+          />
         ) : (
           <span className="text-gray-400 italic">Unassigned</span>
         )}
