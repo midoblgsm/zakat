@@ -592,10 +592,6 @@ export async function queueEmail(
 
   const emailDoc: EmailQueueDocument = {
     to,
-    // FROM address must match a verified sender in your email provider (SendGrid/SMTP)
-    // The Firebase Trigger Email extension's default FROM will be used if not specified
-    from: options.from,
-    replyTo: options.replyTo,
     message: {
       subject: templateConfig.subject(data),
       text: templateConfig.text(data),
@@ -607,6 +603,14 @@ export async function queueEmail(
     },
     createdAt: Timestamp.now(),
   };
+
+  // Only include from/replyTo if provided (extension uses its default FROM otherwise)
+  if (options.from) {
+    emailDoc.from = options.from;
+  }
+  if (options.replyTo) {
+    emailDoc.replyTo = options.replyTo;
+  }
 
   const docRef = await db.collection("mail").add(emailDoc);
   logger.info(`Email queued: ${docRef.id}`, { template, to });
