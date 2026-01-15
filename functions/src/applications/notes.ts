@@ -166,7 +166,7 @@ export const addAdminNote = onCall(
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       details: isInternal
         ? "Internal note added"
         : "Note added (visible to applicant)",
@@ -320,7 +320,7 @@ export const resolveApplication = onCall(
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       previousStatus,
       newStatus,
       details:
@@ -476,7 +476,7 @@ export const flagApplicant = onCall(
         performedBy: auth.uid,
         performedByName: userInfo.name,
         performedByRole: userInfo.role,
-        performedByMasjid: userInfo.masjidId,
+        ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
         details: `Applicant flagged: ${reason} (${severity})`,
         metadata: { flagId: flagRef.id, severity },
       });

@@ -168,20 +168,22 @@ export const requestDocuments = onCall(
 
     // Create history entry
     const documentTypes = documents.map((d) => d.documentType).join(", ");
+    const historyMetadata: Record<string, unknown> = {
+      documentTypes: documents.map((d) => d.documentType),
+      requestIds,
+    };
+    if (message) historyMetadata.message = message;
+
     await createHistoryEntry(applicationId, {
       action: "document_requested",
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       previousStatus,
       newStatus: "pending_documents",
       details: `Documents requested: ${documentTypes}`,
-      metadata: {
-        documentTypes: documents.map((d) => d.documentType),
-        requestIds,
-        message,
-      },
+      metadata: historyMetadata,
     });
 
     // Notify applicant
@@ -384,20 +386,22 @@ export const verifyDocument = onCall(
     // Create history entry
     const userInfo = await getUserInfo(auth.uid);
 
+    const verifyMetadata: Record<string, unknown> = {
+      documentPath,
+      verified,
+    };
+    if (notes) verifyMetadata.notes = notes;
+
     await createHistoryEntry(applicationId, {
       action: "document_verified",
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       details: verified
         ? `Document verified: ${documentPath}`
         : `Document rejected: ${documentPath}${notes ? ` - ${notes}` : ""}`,
-      metadata: {
-        documentPath,
-        verified,
-        notes,
-      },
+      metadata: verifyMetadata,
     });
 
     // If document rejected, notify applicant

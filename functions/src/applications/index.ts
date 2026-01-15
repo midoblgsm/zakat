@@ -308,8 +308,8 @@ export const assignApplication = onCall(
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
-      previousAssignee,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
+      ...(previousAssignee && { previousAssignee }),
       newAssignee: targetUserId,
       previousStatus: application.status,
       newStatus,
@@ -430,8 +430,8 @@ export const releaseApplication = onCall(
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
-      previousAssignee,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
+      ...(previousAssignee && { previousAssignee }),
       previousStatus: application.status,
       newStatus: "submitted",
       details: reason
@@ -516,13 +516,13 @@ export const changeApplicationStatus = onCall(
       performedBy: auth.uid,
       performedByName: userInfo.name,
       performedByRole: userInfo.role,
-      performedByMasjid: userInfo.masjidId,
+      ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       previousStatus,
       newStatus,
       details: reason
         ? `Status changed from ${previousStatus} to ${newStatus}: ${reason}`
         : `Status changed from ${previousStatus} to ${newStatus}`,
-      metadata,
+      ...(metadata && { metadata }),
     });
 
     // Notify applicant
