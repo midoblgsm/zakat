@@ -472,6 +472,7 @@ export const releaseApplication = onCall(
  * - Validates status transition
  * - Creates history entry
  * - Sends notifications
+ * - Tracks disbursed amounts
  */
 export const changeApplicationStatus = onCall(
   async (
@@ -486,12 +487,20 @@ export const changeApplicationStatus = onCall(
     const claims = auth.token as unknown as CustomClaims;
     validateAdmin(claims);
 
-    const { applicationId, newStatus, reason, metadata } = data;
+    const { applicationId, newStatus, reason, metadata, disbursedAmount } = data;
 
     if (!applicationId || !newStatus) {
       throw new HttpsError(
         "invalid-argument",
         "Application ID and new status are required"
+      );
+    }
+
+    // Require disbursedAmount when changing to disbursed status
+    if (newStatus === "disbursed" && (disbursedAmount === undefined || disbursedAmount <= 0)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Disbursed amount is required when marking as disbursed"
       );
     }
 
@@ -521,14 +530,46 @@ export const changeApplicationStatus = onCall(
 
     const previousStatus = application.status;
 
-    // Update application
-    await applicationRef.update({
+    // Build update object
+    const updateData: Record<string, unknown> = {
       status: newStatus,
       updatedAt: Timestamp.now(),
-    });
+    };
+
+    // Add disbursed amount to resolution when disbursing
+    if (newStatus === "disbursed" && disbursedAmount) {
+      updateData["resolution.amountDisbursed"] = disbursedAmount;
+      updateData["resolution.disbursedAt"] = Timestamp.now();
+      updateData["resolution.disbursedBy"] = auth.uid;
+
+      // Update masjid stats
+      if (application.assignedToMasjid) {
+        const masjidRef = db.collection("masajid").doc(application.assignedToMasjid);
+        await masjidRef.update({
+          "stats.totalAmountDisbursed": FieldValue.increment(disbursedAmount),
+          "stats.totalApplicationsHandled": FieldValue.increment(1),
+          "stats.applicationsInProgress": FieldValue.increment(-1),
+        });
+      }
+    }
+
+    // Update application
+    await applicationRef.update(updateData);
 
     // Create history entry
     const userInfo = await getUserInfo(auth.uid);
+
+    let historyDetails: string;
+    if (newStatus === "disbursed" && disbursedAmount) {
+      const amt = `$${disbursedAmount.toLocaleString()}`;
+      const reasonSuffix = reason ? `. ${reason}` : "";
+      historyDetails = `Status changed from ${previousStatus} to ${newStatus}. ` +
+        `Amount disbursed: ${amt}${reasonSuffix}`;
+    } else if (reason) {
+      historyDetails = `Status changed from ${previousStatus} to ${newStatus}: ${reason}`;
+    } else {
+      historyDetails = `Status changed from ${previousStatus} to ${newStatus}`;
+    }
 
     await createHistoryEntry(applicationId, {
       action: "status_changed",
@@ -538,10 +579,11 @@ export const changeApplicationStatus = onCall(
       ...(userInfo.masjidId && { performedByMasjid: userInfo.masjidId }),
       previousStatus,
       newStatus,
-      details: reason
-        ? `Status changed from ${previousStatus} to ${newStatus}: ${reason}`
-        : `Status changed from ${previousStatus} to ${newStatus}`,
-      ...(metadata && { metadata }),
+      details: historyDetails,
+      metadata: {
+        ...metadata,
+        ...(disbursedAmount && { disbursedAmount }),
+      },
     });
 
     // Notify applicant
@@ -553,7 +595,9 @@ export const changeApplicationStatus = onCall(
       pending_verification: "Your application documents are being verified.",
       approved: "Congratulations! Your application has been approved.",
       rejected: "We regret to inform you that your application has been declined.",
-      disbursed: "Funds for your application have been disbursed.",
+      disbursed: disbursedAmount
+        ? `Funds of $${disbursedAmount.toLocaleString()} for your application have been disbursed.`
+        : "Funds for your application have been disbursed.",
       closed: "Your application has been closed.",
     };
 
@@ -568,6 +612,7 @@ export const changeApplicationStatus = onCall(
       // Additional data for email template
       previousStatus,
       newStatus,
+      ...(disbursedAmount && { disbursedAmount }),
     });
 
     return {

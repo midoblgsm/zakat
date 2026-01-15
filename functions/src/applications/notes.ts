@@ -469,6 +469,22 @@ export const flagApplicant = onCall(
       updatedAt: Timestamp.now(),
     });
 
+    // Update applicantSnapshot.isFlagged on ALL applications for this applicant
+    // This ensures the flag shows up across all masajid
+    const applicantAppsSnapshot = await db
+      .collection("applications")
+      .where("applicantId", "==", applicantId)
+      .get();
+
+    const batch = db.batch();
+    applicantAppsSnapshot.docs.forEach((appDoc) => {
+      batch.update(appDoc.ref, {
+        "applicantSnapshot.isFlagged": true,
+        updatedAt: Timestamp.now(),
+      });
+    });
+    await batch.commit();
+
     // If application provided, create history entry
     if (applicationId) {
       await createHistoryEntry(applicationId, {
@@ -567,7 +583,7 @@ export const unflagApplicant = onCall(
       .limit(1)
       .get();
 
-    // If no other active flags, unflag user
+    // If no other active flags, unflag user and all their applications
     if (otherFlags.empty) {
       await db.collection("users").doc(flagData.applicantId).update({
         isFlagged: false,
@@ -577,6 +593,21 @@ export const unflagApplicant = onCall(
         flaggedByMasjid: FieldValue.delete(),
         updatedAt: Timestamp.now(),
       });
+
+      // Update applicantSnapshot.isFlagged on ALL applications for this applicant
+      const applicantAppsSnapshot = await db
+        .collection("applications")
+        .where("applicantId", "==", flagData.applicantId)
+        .get();
+
+      const batch = db.batch();
+      applicantAppsSnapshot.docs.forEach((appDoc) => {
+        batch.update(appDoc.ref, {
+          "applicantSnapshot.isFlagged": false,
+          updatedAt: Timestamp.now(),
+        });
+      });
+      await batch.commit();
     }
 
     // Create audit log

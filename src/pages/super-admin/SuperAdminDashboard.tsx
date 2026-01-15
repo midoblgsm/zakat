@@ -236,6 +236,9 @@ export function SuperAdminDashboard() {
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                           Total Handled
                         </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Total Disbursed
+                        </th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                           Actions
                         </th>
@@ -271,6 +274,9 @@ export function SuperAdminDashboard() {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                             {masjid.stats?.totalApplicationsHandled || 0}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${(masjid.stats?.totalAmountDisbursed || 0).toLocaleString()}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-right">
                             <Link to={`/super-admin/masajid/${masjid.id}`}>

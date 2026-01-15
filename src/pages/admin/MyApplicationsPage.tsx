@@ -10,6 +10,7 @@ import {
   InboxIcon,
   CheckCircleIcon,
   BanknotesIcon,
+  ArchiveBoxIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -30,6 +31,7 @@ const CASE_STATUSES: ApplicationStatus[] = [
   'pending_verification',
   'approved',
   'disbursed',
+  'closed',
 ];
 
 function StatusBadge({ status }: { status: string }) {
@@ -258,6 +260,7 @@ export function MyApplicationsPage() {
                 </option>
                 <option value="approved">Approved</option>
                 <option value="disbursed">Disbursed</option>
+                <option value="closed">Closed</option>
               </select>
             </div>
 
@@ -274,7 +277,7 @@ export function MyApplicationsPage() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card padding="sm">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -343,6 +346,19 @@ export function MyApplicationsPage() {
               <p className="text-sm text-gray-500">Disbursed</p>
               <p className="text-lg font-semibold text-gray-900">
                 {applications.filter((a) => a.status === 'disbursed').length}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card padding="sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center">
+              <ArchiveBoxIcon className="h-6 w-6 text-gray-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Closed</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {applications.filter((a) => a.status === 'closed').length}
               </p>
             </div>
           </div>

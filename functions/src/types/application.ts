@@ -180,6 +180,7 @@ export interface ChangeStatusRequest {
   newStatus: ApplicationStatus;
   reason?: string;
   metadata?: Record<string, unknown>;
+  disbursedAmount?: number;
 }
 
 /**
