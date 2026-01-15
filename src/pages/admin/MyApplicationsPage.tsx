@@ -9,6 +9,7 @@ import {
   EyeIcon,
   InboxIcon,
   CheckCircleIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -28,6 +29,7 @@ const CASE_STATUSES: ApplicationStatus[] = [
   'pending_documents',
   'pending_verification',
   'approved',
+  'disbursed',
 ];
 
 function StatusBadge({ status }: { status: string }) {
@@ -255,6 +257,7 @@ export function MyApplicationsPage() {
                   Pending Verification
                 </option>
                 <option value="approved">Approved</option>
+                <option value="disbursed">Disbursed</option>
               </select>
             </div>
 
@@ -271,7 +274,7 @@ export function MyApplicationsPage() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <Card padding="sm">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -291,7 +294,7 @@ export function MyApplicationsPage() {
               <InboxIcon className="h-6 w-6 text-orange-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Pending Documents</p>
+              <p className="text-sm text-gray-500">Pending Docs</p>
               <p className="text-lg font-semibold text-gray-900">
                 {
                   applications.filter((a) => a.status === 'pending_documents')
@@ -307,7 +310,7 @@ export function MyApplicationsPage() {
               <MagnifyingGlassIcon className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">Pending Verification</p>
+              <p className="text-sm text-gray-500">Pending Verify</p>
               <p className="text-lg font-semibold text-gray-900">
                 {
                   applications.filter(
@@ -327,6 +330,19 @@ export function MyApplicationsPage() {
               <p className="text-sm text-gray-500">Approved</p>
               <p className="text-lg font-semibold text-gray-900">
                 {applications.filter((a) => a.status === 'approved').length}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card padding="sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+              <BanknotesIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Disbursed</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {applications.filter((a) => a.status === 'disbursed').length}
               </p>
             </div>
           </div>

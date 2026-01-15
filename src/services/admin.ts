@@ -157,7 +157,7 @@ export async function getMyApplications(
   return getApplicationPool({
     ...filters,
     assignedTo: adminId,
-    status: filters.status || ['under_review', 'pending_documents', 'pending_verification', 'approved'],
+    status: filters.status || ['under_review', 'pending_documents', 'pending_verification', 'approved', 'disbursed'],
   });
 }
 
