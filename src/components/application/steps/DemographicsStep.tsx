@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '../../common/Input';
 import { Select, Checkbox } from '../../forms';
 import { FormStep } from '../../forms/FormStep';
+import { getActiveMasajid } from '../../../services/masjid';
 import type { DemographicsFormData } from '../../../schemas/application';
+import type { Masjid } from '../../../types/masjid';
 
 const GENDER_OPTIONS = [
   { value: 'male', label: 'Male' },
@@ -28,14 +31,70 @@ const COMMON_LANGUAGES = [
   { value: 'Other', label: 'Other' },
 ];
 
+const OTHER_MASJID_VALUE = '__other__';
+
 export function DemographicsStep() {
   const {
     register,
     watch,
+    setValue,
     formState: { errors },
   } = useFormContext<{ demographics: DemographicsFormData }>();
 
+  const [masajid, setMasajid] = useState<Masjid[]>([]);
+  const [loadingMasajid, setLoadingMasajid] = useState(true);
+  const [showOtherMasjid, setShowOtherMasjid] = useState(false);
+
   const hasDriverLicense = watch('demographics.hasDriverLicense');
+  const associatedMasjid = watch('demographics.associatedMasjid');
+
+  // Fetch active masajid on mount
+  useEffect(() => {
+    async function fetchMasajid() {
+      try {
+        const activeMasajid = await getActiveMasajid();
+        setMasajid(activeMasajid);
+      } catch (err) {
+        console.error('Error fetching masajid:', err);
+      } finally {
+        setLoadingMasajid(false);
+      }
+    }
+    fetchMasajid();
+  }, []);
+
+  // Check if current value is "Other" or a custom value not in the list
+  useEffect(() => {
+    if (!loadingMasajid && associatedMasjid) {
+      const isKnownMasjid = masajid.some(m => m.name === associatedMasjid);
+      setShowOtherMasjid(!isKnownMasjid && associatedMasjid !== '');
+    }
+  }, [loadingMasajid, associatedMasjid, masajid]);
+
+  // Build masjid options for the dropdown
+  const masjidOptions = [
+    ...masajid.map(m => ({ value: m.name, label: m.name })),
+    { value: OTHER_MASJID_VALUE, label: 'Other (not listed)' },
+  ];
+
+  const handleMasjidChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === OTHER_MASJID_VALUE) {
+      setShowOtherMasjid(true);
+      setValue('demographics.associatedMasjid', '');
+    } else {
+      setShowOtherMasjid(false);
+      setValue('demographics.associatedMasjid', value);
+    }
+  };
+
+  // Determine the current dropdown value
+  const getDropdownValue = () => {
+    if (showOtherMasjid) return OTHER_MASJID_VALUE;
+    if (!associatedMasjid) return '';
+    const isKnownMasjid = masajid.some(m => m.name === associatedMasjid);
+    return isKnownMasjid ? associatedMasjid : OTHER_MASJID_VALUE;
+  };
 
   return (
     <FormStep
@@ -129,14 +188,30 @@ export function DemographicsStep() {
           </div>
         </div>
 
-        <div className="md:col-span-2">
-          <Input
-            label="Associated Masjid (Optional)"
-            {...register('demographics.associatedMasjid')}
-            error={errors.demographics?.associatedMasjid?.message}
-            placeholder="Name of masjid you regularly attend"
-            hint="This helps us understand your community connection"
-          />
+        <div className="md:col-span-2 border-t pt-4 mt-2">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Masjid Association (Optional)</h3>
+          <div className="space-y-4">
+            <Select
+              label="Associated Masjid"
+              options={masjidOptions}
+              value={getDropdownValue()}
+              onChange={handleMasjidChange}
+              error={errors.demographics?.associatedMasjid?.message}
+              placeholder={loadingMasajid ? "Loading masajid..." : "Select your masjid"}
+              disabled={loadingMasajid}
+              hint="Select the masjid you regularly attend"
+            />
+
+            {showOtherMasjid && (
+              <Input
+                label="Other Masjid Name"
+                {...register('demographics.associatedMasjid')}
+                error={errors.demographics?.associatedMasjid?.message}
+                placeholder="Enter the name of your masjid"
+                hint="Please provide the name of the masjid you attend"
+              />
+            )}
+          </div>
         </div>
       </div>
     </FormStep>

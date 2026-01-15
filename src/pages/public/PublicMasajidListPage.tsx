@@ -163,8 +163,7 @@ export function PublicMasajidListPage() {
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link to="/register">
               <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-primary-600"
+                className="bg-white text-primary-600 hover:bg-primary-50"
               >
                 Start Your Application
               </Button>
@@ -172,7 +171,7 @@ export function PublicMasajidListPage() {
             <Link to="/login">
               <Button
                 variant="ghost"
-                className="text-primary-100 hover:text-white"
+                className="text-white hover:bg-primary-500"
               >
                 Already Applied? Check Status
               </Button>
