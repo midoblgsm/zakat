@@ -199,6 +199,7 @@ export const requestDocuments = onCall(
       title: "Documents Requested",
       message: notificationMessage,
       applicationId,
+      documentTypes,
       read: false,
       createdAt: Timestamp.now(),
     });
