@@ -380,8 +380,58 @@ export const verifyDocument = onCall(
     }
 
     // Find and update the document in the application's documents field
-    // This assumes documents are stored in a map structure
-    // The actual update logic depends on your document structure
+    // Documents are stored in: photoId, ssnCard, leaseAgreement, otherDocuments[]
+    const appData = applicationDoc.data() as Record<string, unknown>;
+    const documents = appData.documents as Record<string, unknown> | undefined;
+
+    if (documents) {
+      const updateData: Record<string, unknown> = {
+        updatedAt: Timestamp.now(),
+      };
+
+      // Check each document field for matching storagePath
+      const docFields = ["photoId", "ssnCard", "leaseAgreement"];
+      let documentFound = false;
+
+      for (const field of docFields) {
+        const doc = documents[field] as { storagePath?: string } | undefined;
+        if (doc?.storagePath === documentPath) {
+          updateData[`documents.${field}.verified`] = verified;
+          updateData[`documents.${field}.verifiedBy`] = auth.uid;
+          updateData[`documents.${field}.verifiedAt`] = Timestamp.now();
+          if (notes) {
+            updateData[`documents.${field}.verificationNotes`] = notes;
+          }
+          documentFound = true;
+          break;
+        }
+      }
+
+      // Check otherDocuments array
+      if (!documentFound && Array.isArray(documents.otherDocuments)) {
+        const otherDocs = documents.otherDocuments as Array<Record<string, unknown>>;
+        for (let i = 0; i < otherDocs.length; i++) {
+          if (otherDocs[i]?.storagePath === documentPath) {
+            // For array fields, we need to update the entire array
+            const updatedOtherDocs = [...otherDocs];
+            updatedOtherDocs[i] = {
+              ...updatedOtherDocs[i],
+              verified,
+              verifiedBy: auth.uid,
+              verifiedAt: Timestamp.now(),
+              ...(notes && { verificationNotes: notes }),
+            };
+            updateData["documents.otherDocuments"] = updatedOtherDocs;
+            documentFound = true;
+            break;
+          }
+        }
+      }
+
+      if (documentFound) {
+        await applicationRef.update(updateData);
+      }
+    }
 
     // Create history entry
     const userInfo = await getUserInfo(auth.uid);
