@@ -83,6 +83,7 @@ export function ZakatRequestStep() {
           <RadioGroup
             options={ASSISTANCE_TYPE_OPTIONS}
             {...register('zakatRequest.assistanceType')}
+            value={assistanceType}
             error={errors.zakatRequest?.assistanceType?.message}
             orientation="horizontal"
           />
