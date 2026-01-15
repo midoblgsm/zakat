@@ -34,6 +34,28 @@ import {
 const db = getFirestore();
 
 /**
+ * Safely decrement a masjid stat counter, ensuring it never goes below 0
+ */
+async function safeDecrementMasjidStat(
+  masjidId: string,
+  statField: string
+): Promise<void> {
+  const masjidRef = db.collection("masajid").doc(masjidId);
+
+  await db.runTransaction(async (transaction) => {
+    const masjidDoc = await transaction.get(masjidRef);
+    if (!masjidDoc.exists) return;
+
+    const currentValue = masjidDoc.data()?.stats?.[statField] || 0;
+    if (currentValue > 0) {
+      transaction.update(masjidRef, {
+        [`stats.${statField}`]: FieldValue.increment(-1),
+      });
+    }
+  });
+}
+
+/**
  * Generate unique application number
  */
 async function generateApplicationNumber(): Promise<string> {
@@ -323,12 +345,9 @@ export const assignApplication = onCall(
       });
     } else if (previousMasjidId && targetMasjidId &&
                previousMasjidId !== targetMasjidId) {
-      // Reassignment to different masjid - decrement old, increment new
-      const oldMasjidRef = db.collection("masajid").doc(previousMasjidId);
+      // Reassignment to different masjid - safely decrement old, increment new
+      await safeDecrementMasjidStat(previousMasjidId, "applicationsInProgress");
       const newMasjidRef = db.collection("masajid").doc(targetMasjidId);
-      await oldMasjidRef.update({
-        "stats.applicationsInProgress": FieldValue.increment(-1),
-      });
       await newMasjidRef.update({
         "stats.applicationsInProgress": FieldValue.increment(1),
       });
@@ -463,12 +482,9 @@ export const releaseApplication = onCall(
       updatedAt: Timestamp.now(),
     });
 
-    // Decrement masjid's in-progress count when releasing
+    // Decrement masjid's in-progress count when releasing (never go below 0)
     if (previousMasjidId) {
-      const masjidRef = db.collection("masajid").doc(previousMasjidId);
-      await masjidRef.update({
-        "stats.applicationsInProgress": FieldValue.increment(-1),
-      });
+      await safeDecrementMasjidStat(previousMasjidId, "applicationsInProgress");
     }
 
     // Create history entry
@@ -578,9 +594,19 @@ export const changeApplicationStatus = onCall(
         await masjidRef.update({
           "stats.totalAmountDisbursed": FieldValue.increment(disbursedAmount),
           "stats.totalApplicationsHandled": FieldValue.increment(1),
-          "stats.applicationsInProgress": FieldValue.increment(-1),
         });
+        // Safely decrement in-progress count (never go below 0)
+        await safeDecrementMasjidStat(application.assignedToMasjid, "applicationsInProgress");
       }
+    }
+
+    // Decrement in-progress count for other terminal statuses (rejected, closed)
+    if (["rejected", "closed"].includes(newStatus) && application.assignedToMasjid) {
+      const masjidRef = db.collection("masajid").doc(application.assignedToMasjid);
+      await masjidRef.update({
+        "stats.totalApplicationsHandled": FieldValue.increment(1),
+      });
+      await safeDecrementMasjidStat(application.assignedToMasjid, "applicationsInProgress");
     }
 
     // Update application
