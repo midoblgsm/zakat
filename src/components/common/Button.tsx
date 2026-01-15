@@ -10,6 +10,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Text shown to screen readers when loading */
+  loadingText?: string;
+  /** Left icon slot */
+  leftIcon?: React.ReactNode;
+  /** Right icon slot */
+  rightIcon?: React.ReactNode;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -29,6 +35,10 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-base',
 };
 
+/**
+ * Accessible button component (WCAG 2.1 Level AA)
+ * Supports loading states, icons, and proper ARIA attributes
+ */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -36,17 +46,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       size = 'md',
       loading = false,
       fullWidth = false,
+      loadingText = 'Loading',
+      leftIcon,
+      rightIcon,
       disabled,
       className,
       children,
+      'aria-label': ariaLabel,
       ...props
     },
     ref
   ) => {
+    const isDisabled = disabled || loading;
+
     return (
       <button
         ref={ref}
-        disabled={disabled || loading}
+        disabled={isDisabled}
         className={clsx(
           'inline-flex items-center justify-center rounded-md font-medium transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-offset-2',
@@ -56,10 +72,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           fullWidth && 'w-full',
           className
         )}
+        aria-label={loading ? loadingText : ariaLabel}
+        aria-busy={loading}
+        aria-disabled={isDisabled}
         {...props}
       >
-        {loading && <LoadingSpinner size="sm" className="mr-2" />}
-        {children}
+        {loading ? (
+          <>
+            <LoadingSpinner size="sm" className="mr-2" />
+            <span aria-hidden="true">{children}</span>
+            <span className="sr-only">{loadingText}</span>
+          </>
+        ) : (
+          <>
+            {leftIcon && <span className="mr-2" aria-hidden="true">{leftIcon}</span>}
+            {children}
+            {rightIcon && <span className="ml-2" aria-hidden="true">{rightIcon}</span>}
+          </>
+        )}
       </button>
     );
   }
