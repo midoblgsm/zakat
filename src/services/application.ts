@@ -17,6 +17,22 @@ import { firebaseDb, firebaseFunctions } from './firebase';
 import type { ZakatApplication, ApplicationHistoryEntry } from '../types/application';
 import type { ApplicationFormData } from '../schemas/application';
 
+/**
+ * Document request interface
+ */
+export interface DocumentRequest {
+  id: string;
+  documentType: string;
+  description: string;
+  required: boolean;
+  requestedBy: string;
+  requestedByName: string;
+  requestedAt: { seconds: number };
+  fulfilledAt?: { seconds: number };
+  fulfilledBy?: string;
+  storagePath?: string;
+}
+
 const APPLICATIONS_COLLECTION = 'applications';
 
 /**
@@ -556,6 +572,59 @@ export async function getApplicationHistory(
     return filteredHistory;
   } catch (error) {
     console.error('Error getting application history:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get document requests for an application
+ */
+export async function getDocumentRequests(
+  applicationId: string
+): Promise<DocumentRequest[]> {
+  try {
+    const getDocumentRequestsFn = httpsCallable<
+      { applicationId: string },
+      { success: boolean; data: DocumentRequest[] }
+    >(firebaseFunctions, 'getDocumentRequests');
+
+    const result = await getDocumentRequestsFn({ applicationId });
+
+    if (result.data.success) {
+      return result.data.data || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error getting document requests:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fulfill a document request (mark it as uploaded)
+ */
+export async function fulfillDocumentRequest(
+  applicationId: string,
+  requestId: string,
+  storagePath: string
+): Promise<void> {
+  try {
+    const fulfillDocumentRequestFn = httpsCallable<
+      { applicationId: string; requestId: string; storagePath: string },
+      { success: boolean }
+    >(firebaseFunctions, 'fulfillDocumentRequest');
+
+    const result = await fulfillDocumentRequestFn({
+      applicationId,
+      requestId,
+      storagePath,
+    });
+
+    if (!result.data.success) {
+      throw new Error('Failed to fulfill document request');
+    }
+  } catch (error) {
+    console.error('Error fulfilling document request:', error);
     throw error;
   }
 }
