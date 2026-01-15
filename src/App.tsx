@@ -23,6 +23,7 @@ import { ApplicationPoolPage } from './pages/admin/ApplicationPoolPage';
 import { MyApplicationsPage } from './pages/admin/MyApplicationsPage';
 import { AdminApplicationDetailPage } from './pages/admin/AdminApplicationDetailPage';
 import { FlagManagementPage } from './pages/admin/FlagManagementPage';
+import { AnalyticsDashboard } from './pages/admin/AnalyticsDashboard';
 
 // Super Admin Pages
 import { SuperAdminDashboard } from './pages/super-admin/SuperAdminDashboard';
@@ -76,6 +77,7 @@ function App() {
           <Route path="my-applications" element={<MyApplicationsPage />} />
           <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
           <Route path="flags" element={<FlagManagementPage />} />
+          <Route path="analytics" element={<AnalyticsDashboard />} />
         </Route>
 
         {/* Super Admin routes */}
@@ -95,6 +97,7 @@ function App() {
           <Route path="applications" element={<SuperAdminApplicationsPage />} />
           <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
           <Route path="flags" element={<FlagManagementPage />} />
+          <Route path="analytics" element={<AnalyticsDashboard />} />
         </Route>
 
         {/* 404 */}
