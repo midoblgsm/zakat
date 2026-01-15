@@ -437,7 +437,7 @@ export const releaseApplication = onCall(
       details: reason
         ? `Application released to pool: ${reason}`
         : "Application released to pool",
-      metadata: reason ? { reason } : undefined,
+      ...(reason && { metadata: { reason } }),
     });
 
     return { success: true };

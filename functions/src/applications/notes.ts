@@ -286,16 +286,16 @@ export const resolveApplication = onCall(
     // Get admin info
     const userInfo = await getUserInfo(auth.uid);
 
-    // Create resolution
+    // Create resolution - only include defined fields to avoid Firestore errors
     const resolution: ApplicationResolution = {
       decision,
       decidedBy: auth.uid,
       decidedByName: userInfo.name,
       decidedByMasjid: userInfo.masjidId || "",
       decidedAt: Timestamp.now(),
-      amountApproved: decision !== "rejected" ? amountApproved : undefined,
-      disbursementMethod: decision !== "rejected" ? disbursementMethod : undefined,
-      rejectionReason: decision === "rejected" ? rejectionReason : undefined,
+      ...(decision !== "rejected" && amountApproved && { amountApproved }),
+      ...(decision !== "rejected" && disbursementMethod && { disbursementMethod }),
+      ...(decision === "rejected" && rejectionReason && { rejectionReason }),
     };
 
     // Determine new status
@@ -309,7 +309,12 @@ export const resolveApplication = onCall(
       updatedAt: Timestamp.now(),
     });
 
-    // Create history entry
+    // Create history entry - filter out undefined metadata values
+    const historyMetadata: Record<string, unknown> = { decision };
+    if (amountApproved !== undefined) historyMetadata.amountApproved = amountApproved;
+    if (disbursementMethod) historyMetadata.disbursementMethod = disbursementMethod;
+    if (rejectionReason) historyMetadata.rejectionReason = rejectionReason;
+
     await createHistoryEntry(applicationId, {
       action: decision === "rejected" ? "rejected" : "approved",
       performedBy: auth.uid,
@@ -322,12 +327,7 @@ export const resolveApplication = onCall(
         decision === "rejected"
           ? `Application rejected: ${rejectionReason}`
           : `Application approved for $${amountApproved}`,
-      metadata: {
-        decision,
-        amountApproved,
-        disbursementMethod,
-        rejectionReason,
-      },
+      metadata: historyMetadata,
     });
 
     // Add notes if provided
