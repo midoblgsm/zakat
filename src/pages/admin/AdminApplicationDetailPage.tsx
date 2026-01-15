@@ -4,7 +4,6 @@ import {
   ArrowLeftIcon,
   CheckCircleIcon,
   ClockIcon,
-  DocumentTextIcon,
   XCircleIcon,
   ExclamationTriangleIcon,
   UserPlusIcon,
@@ -19,6 +18,7 @@ import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal, ModalFooter } from '@/components/common/Modal';
 import { MasjidNameDisplay } from '@/components/common/MasjidNameDisplay';
+import { DocumentVerificationPanel } from '@/components/admin/DocumentVerificationPanel';
 import { FlagApplicantModal, FlagAlertBanner } from '@/components/flags';
 import { createFlag } from '@/services/flag';
 import type { FlagSeverity } from '@/types/flag';
@@ -851,67 +851,12 @@ export function AdminApplicationDetailPage() {
       </Section>
 
       {/* Documents */}
-      <Section title="Documents">
-        <div className="space-y-3">
-          {application.documents?.photoId && (
-            <div className="flex items-center gap-3">
-              <DocumentTextIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700">
-                Photo ID - {application.documents.photoId.fileName}
-              </span>
-              {application.documents.photoId.verified ? (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-              ) : (
-                <span className="text-xs text-amber-600">Unverified</span>
-              )}
-            </div>
-          )}
-          {application.documents?.ssnCard && (
-            <div className="flex items-center gap-3">
-              <DocumentTextIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700">
-                SSN Card - {application.documents.ssnCard.fileName}
-              </span>
-              {application.documents.ssnCard.verified ? (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-              ) : (
-                <span className="text-xs text-amber-600">Unverified</span>
-              )}
-            </div>
-          )}
-          {application.documents?.leaseAgreement && (
-            <div className="flex items-center gap-3">
-              <DocumentTextIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700">
-                Lease Agreement - {application.documents.leaseAgreement.fileName}
-              </span>
-              {application.documents.leaseAgreement.verified ? (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-              ) : (
-                <span className="text-xs text-amber-600">Unverified</span>
-              )}
-            </div>
-          )}
-          {application.documents?.otherDocuments?.map((doc, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <DocumentTextIcon className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-700">{doc.fileName}</span>
-              {doc.verified ? (
-                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-              ) : (
-                <span className="text-xs text-amber-600">Unverified</span>
-              )}
-            </div>
-          ))}
-          {!application.documents?.photoId &&
-            !application.documents?.ssnCard &&
-            !application.documents?.leaseAgreement &&
-            (!application.documents?.otherDocuments ||
-              application.documents.otherDocuments.length === 0) && (
-              <p className="text-sm text-gray-500">No documents uploaded</p>
-            )}
-        </div>
-      </Section>
+      <DocumentVerificationPanel
+        applicationId={application.id}
+        documents={application.documents}
+        canVerify={isAssignedToMe && hasMasjidId}
+        onUpdate={loadApplication}
+      />
 
       {/* References */}
       <Section title="References">
