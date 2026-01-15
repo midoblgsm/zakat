@@ -53,7 +53,7 @@ function ApplicationCard({ application }: { application: ZakatApplication }) {
                 </>
               )}
             </p>
-            {application.zakatRequest && (
+            {application.zakatRequest && application.zakatRequest.amountRequested != null && (
               <div className="mt-2 text-sm text-gray-600">
                 <span className="font-medium">
                   ${application.zakatRequest.amountRequested.toLocaleString()}
