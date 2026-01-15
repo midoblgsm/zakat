@@ -53,9 +53,10 @@ describe('Input', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('should have aria-invalid false when no error', () => {
+  it('should not have aria-invalid when no error', () => {
     render(<Input name="email" />);
-    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false');
+    // WCAG best practice: only set aria-invalid when true
+    expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-invalid');
   });
 
   it('should use name as id when id is not provided', () => {
