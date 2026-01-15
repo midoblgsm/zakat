@@ -115,7 +115,8 @@ interface StatusChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentStatus: ApplicationStatus;
-  onSubmit: (status: ApplicationStatus, notes: string) => Promise<void>;
+  approvedAmount?: number;
+  onSubmit: (status: ApplicationStatus, notes: string, disbursedAmount?: number) => Promise<void>;
   isSubmitting: boolean;
 }
 
@@ -123,19 +124,31 @@ function StatusChangeModal({
   isOpen,
   onClose,
   currentStatus,
+  approvedAmount,
   onSubmit,
   isSubmitting,
 }: StatusChangeModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<ApplicationStatus | ''>('');
   const [notes, setNotes] = useState('');
+  const [disbursedAmount, setDisbursedAmount] = useState<string>('');
   const validTransitions = getValidStatusTransitions(currentStatus);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStatus) return;
-    await onSubmit(selectedStatus, notes);
+    const amount = selectedStatus === 'disbursed' ? parseFloat(disbursedAmount) || 0 : undefined;
+    await onSubmit(selectedStatus, notes, amount);
     setSelectedStatus('');
     setNotes('');
+    setDisbursedAmount('');
+  };
+
+  // Pre-fill disbursed amount with approved amount when selecting 'disbursed'
+  const handleStatusChange = (status: ApplicationStatus) => {
+    setSelectedStatus(status);
+    if (status === 'disbursed' && approvedAmount && !disbursedAmount) {
+      setDisbursedAmount(approvedAmount.toString());
+    }
   };
 
   return (
@@ -165,7 +178,7 @@ function StatusChangeModal({
               id="status"
               value={selectedStatus}
               onChange={(e) =>
-                setSelectedStatus(e.target.value as ApplicationStatus)
+                handleStatusChange(e.target.value as ApplicationStatus)
               }
               className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:ring-primary-500"
               required
@@ -178,6 +191,33 @@ function StatusChangeModal({
               ))}
             </select>
           </div>
+
+          {selectedStatus === 'disbursed' && (
+            <div>
+              <label
+                htmlFor="disbursedAmount"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Disbursed Amount ($)
+              </label>
+              <input
+                type="number"
+                id="disbursedAmount"
+                value={disbursedAmount}
+                onChange={(e) => setDisbursedAmount(e.target.value)}
+                min="0"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:border-primary-500 focus:ring-primary-500"
+                placeholder="Enter the amount disbursed..."
+                required
+              />
+              {approvedAmount && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Approved amount: ${approvedAmount.toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label
@@ -204,7 +244,7 @@ function StatusChangeModal({
           <Button
             type="submit"
             loading={isSubmitting}
-            disabled={!selectedStatus || isSubmitting}
+            disabled={!selectedStatus || (selectedStatus === 'disbursed' && !disbursedAmount) || isSubmitting}
           >
             Update Status
           </Button>
@@ -400,7 +440,8 @@ export function AdminApplicationDetailPage() {
 
   const handleStatusChange = async (
     newStatus: ApplicationStatus,
-    notes: string
+    notes: string,
+    disbursedAmount?: number
   ) => {
     if (!application || !user || !profile || !claims?.masjidId) return;
 
@@ -414,7 +455,8 @@ export function AdminApplicationDetailPage() {
         user.uid,
         `${profile.firstName} ${profile.lastName}`,
         claims.masjidId,
-        notes || undefined
+        notes || undefined,
+        disbursedAmount
       );
 
       setSuccessMessage('Status updated successfully!');
@@ -999,6 +1041,7 @@ export function AdminApplicationDetailPage() {
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
         currentStatus={application.status}
+        approvedAmount={application.resolution?.amountApproved}
         onSubmit={handleStatusChange}
         isSubmitting={isSubmitting}
       />

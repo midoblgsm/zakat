@@ -6,6 +6,7 @@ import {
   Cog6ToothIcon,
   ExclamationTriangleIcon,
   ClockIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardContent } from '@/components/common/Card';
@@ -19,6 +20,7 @@ interface AdminStats {
   myCases: number;
   pendingReview: number;
   flaggedApplicants: number;
+  totalDisbursed: number;
 }
 
 export function AdminDashboard() {
@@ -41,6 +43,7 @@ export function AdminDashboard() {
           myCases: 0,
           pendingReview: 0,
           flaggedApplicants: 0,
+          totalDisbursed: 0,
         });
       } finally {
         setIsLoading(false);
@@ -83,6 +86,14 @@ export function AdminDashboard() {
       iconBg: 'bg-red-100',
       iconColor: 'text-red-600',
     },
+    {
+      label: 'Total Disbursed',
+      value: `$${(stats?.totalDisbursed ?? 0).toLocaleString()}`,
+      icon: BanknotesIcon,
+      color: 'bg-emerald-500',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-600',
+    },
   ];
 
   return (
@@ -102,7 +113,7 @@ export function AdminDashboard() {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {statCards.map((stat) => (
             <Card key={stat.label} padding="sm">
               <div className="flex items-center gap-4">

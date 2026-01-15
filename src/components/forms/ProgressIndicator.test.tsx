@@ -10,21 +10,35 @@ describe('ProgressIndicator', () => {
     { id: 'step3', title: 'Step 3', isCompleted: false, isActive: false },
   ];
 
-  it('renders all steps', () => {
+  it('renders all steps as accessible buttons', () => {
     render(<ProgressIndicator steps={mockSteps} currentStep={1} />);
 
-    // Desktop view renders step titles, mobile shows current step only
-    mockSteps.forEach((step) => {
-      // Use getAllByText since desktop and potentially mobile views both render
-      const elements = screen.getAllByText(step.title);
-      expect(elements.length).toBeGreaterThan(0);
+    // Each step should have a button with an accessible aria-label
+    mockSteps.forEach((step, index) => {
+      const expectedLabel = new RegExp(`Step ${index + 1}: ${step.title}`);
+      expect(screen.getByRole('button', { name: expectedLabel })).toBeInTheDocument();
     });
+  });
+
+  it('displays current step title', () => {
+    render(<ProgressIndicator steps={mockSteps} currentStep={1} />);
+
+    // Current step title should be visible (shown in both mobile and desktop views)
+    const currentStepTitle = screen.getAllByText('Step 2');
+    expect(currentStepTitle.length).toBeGreaterThan(0);
   });
 
   it('displays current step number on mobile', () => {
     render(<ProgressIndicator steps={mockSteps} currentStep={1} />);
 
     expect(screen.getByText(/Step 2 of 3/)).toBeInTheDocument();
+  });
+
+  it('displays progress percentage', () => {
+    render(<ProgressIndicator steps={mockSteps} currentStep={1} />);
+
+    // 1 out of 3 steps completed = 33% complete
+    expect(screen.getAllByText(/33% complete/).length).toBeGreaterThan(0);
   });
 
   it('shows check icon for completed steps', () => {
@@ -98,5 +112,19 @@ describe('ProgressIndicator', () => {
 
     const buttons = screen.getAllByRole('button');
     expect(buttons[1]).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('marks completed steps in aria-label', () => {
+    render(<ProgressIndicator steps={mockSteps} currentStep={1} />);
+
+    // Step 1 is completed, should have "(completed)" in aria-label
+    expect(
+      screen.getByRole('button', { name: /Step 1: Step 1 \(completed\)/ })
+    ).toBeInTheDocument();
+
+    // Step 2 is current, should have "(current)" in aria-label
+    expect(
+      screen.getByRole('button', { name: /Step 2: Step 2 \(current\)/ })
+    ).toBeInTheDocument();
   });
 });

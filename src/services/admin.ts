@@ -157,7 +157,7 @@ export async function getMyApplications(
   return getApplicationPool({
     ...filters,
     assignedTo: adminId,
-    status: filters.status || ['under_review', 'pending_documents', 'pending_verification', 'approved'],
+    status: filters.status || ['under_review', 'pending_documents', 'pending_verification', 'approved', 'disbursed', 'closed'],
   });
 }
 
@@ -247,15 +247,16 @@ export async function changeApplicationStatus(
   _adminId: string,
   _adminName: string,
   _masjidId: string,
-  reason?: string
+  reason?: string,
+  disbursedAmount?: number
 ): Promise<void> {
   try {
     const changeStatusFn = httpsCallable<
-      { applicationId: string; newStatus: ApplicationStatus; reason?: string },
+      { applicationId: string; newStatus: ApplicationStatus; reason?: string; disbursedAmount?: number },
       { success: boolean; data: { newStatus: ApplicationStatus } }
     >(firebaseFunctions, 'changeApplicationStatus');
 
-    const result = await changeStatusFn({ applicationId, newStatus, reason });
+    const result = await changeStatusFn({ applicationId, newStatus, reason, disbursedAmount });
 
     if (!result.data.success) {
       throw new Error('Failed to change application status');
@@ -389,6 +390,7 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
   myCases: number;
   pendingReview: number;
   flaggedApplicants: number;
+  totalDisbursed: number;
 }> {
   try {
     // Get pool size (submitted applications) - filter unassigned client-side
@@ -410,6 +412,7 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
 
     let pendingReview = 0;
     let flaggedApplicants = 0;
+    let totalDisbursed = 0;
 
     if (masjidId) {
       // For zakat_admin: get pending review for their masjid only
@@ -429,6 +432,12 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
       );
       const flaggedSnapshot = await getDocs(flaggedQuery);
       flaggedApplicants = flaggedSnapshot.size;
+
+      // Get total disbursed for this masjid
+      const masjidDoc = await getDoc(doc(firebaseDb, 'masajid', masjidId));
+      if (masjidDoc.exists()) {
+        totalDisbursed = masjidDoc.data()?.stats?.totalAmountDisbursed || 0;
+      }
     } else {
       // For super_admin: get all pending review
       const pendingQuery = query(
@@ -445,6 +454,12 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
       );
       const flaggedSnapshot = await getDocs(flaggedQuery);
       flaggedApplicants = flaggedSnapshot.size;
+
+      // For super_admin: get total disbursed across all masajid
+      const masajidSnapshot = await getDocs(collection(firebaseDb, 'masajid'));
+      masajidSnapshot.docs.forEach((masjidDoc) => {
+        totalDisbursed += masjidDoc.data()?.stats?.totalAmountDisbursed || 0;
+      });
     }
 
     return {
@@ -452,6 +467,7 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
       myCases: myCasesSnapshot.size,
       pendingReview,
       flaggedApplicants,
+      totalDisbursed,
     };
   } catch (error) {
     console.error('Error getting admin stats:', error);
@@ -461,6 +477,7 @@ export async function getAdminStats(adminId: string, masjidId: string | null): P
       myCases: 0,
       pendingReview: 0,
       flaggedApplicants: 0,
+      totalDisbursed: 0,
     };
   }
 }
