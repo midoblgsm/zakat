@@ -341,6 +341,9 @@ export const assignApplication = onCall(
       applicationId,
       read: false,
       createdAt: Timestamp.now(),
+      // Additional data for email template
+      previousStatus: application.status,
+      newStatus,
     });
 
     return {
@@ -546,6 +549,9 @@ export const changeApplicationStatus = onCall(
       applicationId,
       read: false,
       createdAt: Timestamp.now(),
+      // Additional data for email template
+      previousStatus,
+      newStatus,
     });
 
     return {
