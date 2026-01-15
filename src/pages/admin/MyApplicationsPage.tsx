@@ -8,6 +8,7 @@ import {
   ClockIcon,
   EyeIcon,
   InboxIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -26,6 +27,7 @@ const CASE_STATUSES: ApplicationStatus[] = [
   'under_review',
   'pending_documents',
   'pending_verification',
+  'approved',
 ];
 
 function StatusBadge({ status }: { status: string }) {
@@ -98,19 +100,21 @@ function ApplicationRow({
           >
             <Button size="sm">
               <EyeIcon className="h-4 w-4 mr-1" />
-              Review
+              {application.status === 'approved' ? 'View' : 'Review'}
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onRelease(application.id)}
-            loading={isReleasing}
-            disabled={isReleasing}
-          >
-            <ArrowPathIcon className="h-4 w-4 mr-1" />
-            Release
-          </Button>
+          {application.status !== 'approved' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onRelease(application.id)}
+              loading={isReleasing}
+              disabled={isReleasing}
+            >
+              <ArrowPathIcon className="h-4 w-4 mr-1" />
+              Release
+            </Button>
+          )}
         </div>
       </td>
     </tr>
@@ -250,6 +254,7 @@ export function MyApplicationsPage() {
                 <option value="pending_verification">
                   Pending Verification
                 </option>
+                <option value="approved">Approved</option>
               </select>
             </div>
 
@@ -266,7 +271,7 @@ export function MyApplicationsPage() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card padding="sm">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -309,6 +314,19 @@ export function MyApplicationsPage() {
                     (a) => a.status === 'pending_verification'
                   ).length
                 }
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card padding="sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Approved</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {applications.filter((a) => a.status === 'approved').length}
               </p>
             </div>
           </div>
