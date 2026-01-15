@@ -154,8 +154,8 @@ export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
         typeof item === "string"
           ? sanitizeString(item)
           : typeof item === "object" && item !== null
-          ? sanitizeObject(item as Record<string, unknown>)
-          : item
+            ? sanitizeObject(item as Record<string, unknown>)
+            : item
       );
     } else if (typeof value === "object" && value !== null) {
       sanitized[key] = sanitizeObject(value as Record<string, unknown>);
