@@ -264,7 +264,8 @@ export const recordDisbursement = onCall(
       userId: application.applicantId,
       type: "status_update",
       title: "Disbursement Received",
-      message: `A disbursement of $${amount.toLocaleString()} has been recorded for your application ${application.applicationNumber}${periodLabel}.`,
+      message: `A disbursement of $${amount.toLocaleString()} has been recorded ` +
+        `for your application ${application.applicationNumber}${periodLabel}.`,
       applicationId,
       read: false,
       createdAt: now,
@@ -392,7 +393,13 @@ export const getApplicantDisbursementSummary = onCall(
 
     let totalDisbursed = 0;
     let disbursementCount = 0;
-    const masjidMap = new Map<string, { masjidId: string; masjidName: string; totalDisbursed: number; count: number }>();
+    type MasjidEntry = {
+      masjidId: string;
+      masjidName: string;
+      totalDisbursed: number;
+      count: number;
+    };
+    const masjidMap = new Map<string, MasjidEntry>();
 
     // For each application, get disbursements
     for (const appDoc of applicationsSnapshot.docs) {
