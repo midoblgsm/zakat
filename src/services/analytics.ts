@@ -21,6 +21,30 @@ import { firebaseDb } from './firebase';
 import type { ApplicationStatus, ZakatApplication } from '../types/application';
 import type { ApplicantFlag } from '../types/flag';
 
+/**
+ * Safely convert a Firestore timestamp to a Date object.
+ * Handles both Timestamp instances and plain objects {seconds, nanoseconds}.
+ */
+function toDate(timestamp: unknown): Date | null {
+  if (!timestamp) return null;
+
+  // If it's a Firestore Timestamp with toDate method
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
+  }
+
+  // If it's a plain object with seconds (serialized Timestamp)
+  const ts = timestamp as { seconds?: number; nanoseconds?: number; toDate?: () => Date };
+  if (typeof ts.toDate === 'function') {
+    return ts.toDate();
+  }
+  if (typeof ts.seconds === 'number') {
+    return new Date(ts.seconds * 1000 + (ts.nanoseconds || 0) / 1000000);
+  }
+
+  return null;
+}
+
 // Types for analytics data
 export interface ApplicationStats {
   total: number;
@@ -356,18 +380,18 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
       const app = doc.data() as ZakatApplication;
 
       // Calculate processing time
-      if (app.submittedAt && app.resolution?.decidedAt) {
-        const submitted = app.submittedAt.toDate();
-        const decided = app.resolution.decidedAt.toDate();
-        const days = Math.ceil((decided.getTime() - submitted.getTime()) / (1000 * 60 * 60 * 24));
+      const submittedDate = toDate(app.submittedAt);
+      const decidedDate = toDate(app.resolution?.decidedAt);
+
+      if (submittedDate && decidedDate) {
+        const days = Math.ceil((decidedDate.getTime() - submittedDate.getTime()) / (1000 * 60 * 60 * 24));
         if (days >= 0) {
           processingTimes.push(days);
         }
       }
 
       // Count by month
-      if (app.resolution?.decidedAt) {
-        const decidedDate = app.resolution.decidedAt.toDate();
+      if (decidedDate) {
         if (decidedDate >= thisMonthStart) {
           thisMonthCount++;
         } else if (decidedDate >= lastMonthStart && decidedDate <= lastMonthEnd) {
