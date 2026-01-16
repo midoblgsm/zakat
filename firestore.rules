@@ -354,6 +354,19 @@ service cloud.firestore {
     }
 
     // ============================================
+    // COLLECTION GROUP QUERIES
+    // ============================================
+
+    // Disbursements collection group - enables collectionGroup queries
+    // for aggregating disbursements across all applications
+    match /{path=**}/disbursements/{disbursementId} {
+      // Applicants can view their own disbursements
+      // Admins can view all disbursements
+      allow read: if isAuthenticated()
+        && (resource.data.applicantId == request.auth.uid || isAdmin());
+    }
+
+    // ============================================
     // DEFAULT: DENY ALL
     // ============================================
     match /{document=**} {
