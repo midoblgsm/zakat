@@ -16,10 +16,20 @@ import {
   orderBy,
   limit as firestoreLimit,
   Timestamp,
+  or,
 } from 'firebase/firestore';
 import { firebaseDb } from './firebase';
 import type { ApplicationStatus, ZakatApplication } from '../types/application';
 import type { ApplicantFlag } from '../types/flag';
+import type { UserRole } from '../types';
+
+/**
+ * User context for analytics queries - determines what data the user can access
+ */
+export interface AnalyticsUserContext {
+  role: UserRole;
+  masjidId?: string | null;
+}
 
 /**
  * Safely convert a Firestore timestamp to a Date object.
@@ -101,12 +111,100 @@ const FLAGS_COLLECTION = 'flags';
 const MASAJID_COLLECTION = 'masajid';
 
 /**
+ * Returns empty application stats (used when no permissions or errors)
+ */
+function getEmptyApplicationStats(): ApplicationStats {
+  return {
+    total: 0,
+    byStatus: {
+      draft: 0,
+      submitted: 0,
+      under_review: 0,
+      pending_documents: 0,
+      pending_verification: 0,
+      approved: 0,
+      rejected: 0,
+      disbursed: 0,
+      closed: 0,
+    },
+    approvalRate: 0,
+    rejectionRate: 0,
+    pendingCount: 0,
+    averageRequestedAmount: 0,
+    totalApprovedAmount: 0,
+    totalDisbursedAmount: 0,
+  };
+}
+
+/**
+ * Returns empty processing metrics (used when no permissions or errors)
+ */
+function getEmptyProcessingMetrics(): ProcessingMetrics {
+  return {
+    averageProcessingDays: 0,
+    medianProcessingDays: 0,
+    fastestProcessingDays: 0,
+    slowestProcessingDays: 0,
+    applicationsProcessedThisMonth: 0,
+    applicationsProcessedLastMonth: 0,
+  };
+}
+
+/**
+ * Returns empty flag analytics (used when no permissions or errors)
+ */
+function getEmptyFlagAnalytics() {
+  return {
+    total: 0,
+    active: 0,
+    resolved: 0,
+    byMasjid: [],
+    bySeverity: { warning: 0, blocked: 0 },
+    recentFlags: [] as ApplicantFlag[],
+  };
+}
+
+/**
+ * Build application query based on user permissions
+ * Super admins can see all applications
+ * Zakat admins can only see applications assigned to their masjid or in the pool (submitted)
+ */
+function buildApplicationQuery(userContext: AnalyticsUserContext) {
+  const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
+
+  if (userContext.role === 'super_admin') {
+    // Super admins can see everything
+    return query(applicationsRef);
+  }
+
+  if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+    // Zakat admins can see applications assigned to their masjid OR submitted (in pool)
+    return query(
+      applicationsRef,
+      or(
+        where('assignedToMasjid', '==', userContext.masjidId),
+        where('status', '==', 'submitted')
+      )
+    );
+  }
+
+  // Default: no access - return query that will likely return empty
+  return query(applicationsRef, where('__name__', '==', '__nonexistent__'));
+}
+
+/**
  * Get comprehensive application statistics
  */
-export async function getApplicationStats(): Promise<ApplicationStats> {
+export async function getApplicationStats(userContext?: AnalyticsUserContext): Promise<ApplicationStats> {
   try {
-    const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
-    const snapshot = await getDocs(applicationsRef);
+    // If no user context provided, return empty stats (permission error prevention)
+    if (!userContext) {
+      console.warn('getApplicationStats called without user context');
+      return getEmptyApplicationStats();
+    }
+
+    const q = buildApplicationQuery(userContext);
+    const snapshot = await getDocs(q);
 
     const stats: ApplicationStats = {
       total: 0,
@@ -186,44 +284,45 @@ export async function getApplicationStats(): Promise<ApplicationStats> {
     return stats;
   } catch (error) {
     console.error('Error getting application stats:', error);
-    return {
-      total: 0,
-      byStatus: {
-        draft: 0,
-        submitted: 0,
-        under_review: 0,
-        pending_documents: 0,
-        pending_verification: 0,
-        approved: 0,
-        rejected: 0,
-        disbursed: 0,
-        closed: 0,
-      },
-      approvalRate: 0,
-      rejectionRate: 0,
-      pendingCount: 0,
-      averageRequestedAmount: 0,
-      totalApprovedAmount: 0,
-      totalDisbursedAmount: 0,
-    };
+    return getEmptyApplicationStats();
   }
 }
 
 /**
  * Get applications over time (last 30 days)
  */
-export async function getApplicationsOverTime(days: number = 30): Promise<TimeSeriesDataPoint[]> {
+export async function getApplicationsOverTime(days: number = 30, userContext?: AnalyticsUserContext): Promise<TimeSeriesDataPoint[]> {
   try {
+    if (!userContext) {
+      console.warn('getApplicationsOverTime called without user context');
+      return [];
+    }
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
     const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
-    const q = query(
-      applicationsRef,
-      where('createdAt', '>=', Timestamp.fromDate(startDate)),
-      orderBy('createdAt', 'asc')
-    );
+
+    let q;
+    if (userContext.role === 'super_admin') {
+      // Super admins can see all applications
+      q = query(
+        applicationsRef,
+        where('createdAt', '>=', Timestamp.fromDate(startDate)),
+        orderBy('createdAt', 'asc')
+      );
+    } else if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+      // Zakat admins: query applications assigned to their masjid with date filter
+      // Note: We can't combine 'or' with orderBy on different fields in Firestore
+      // So we filter client-side for zakat admins
+      q = query(
+        applicationsRef,
+        where('assignedToMasjid', '==', userContext.masjidId)
+      );
+    } else {
+      return [];
+    }
 
     const snapshot = await getDocs(q);
 
@@ -242,6 +341,10 @@ export async function getApplicationsOverTime(days: number = 30): Promise<TimeSe
       const app = doc.data() as ZakatApplication;
       const createdDate = timestampToDate(app.createdAt);
       if (createdDate) {
+        // For zakat admins, filter by date client-side
+        if (userContext.role === 'zakat_admin' && createdDate < startDate) {
+          return;
+        }
         const date = createdDate.toISOString().split('T')[0];
         if (countsByDate[date] !== undefined) {
           countsByDate[date]++;
@@ -263,9 +366,9 @@ export async function getApplicationsOverTime(days: number = 30): Promise<TimeSe
 /**
  * Get status distribution for pie/donut chart
  */
-export async function getStatusDistribution(): Promise<{ status: string; count: number; percentage: number }[]> {
+export async function getStatusDistribution(userContext?: AnalyticsUserContext): Promise<{ status: string; count: number; percentage: number }[]> {
   try {
-    const stats = await getApplicationStats();
+    const stats = await getApplicationStats(userContext);
     const total = stats.total || 1; // Avoid division by zero
 
     const statusLabels: Record<string, string> = {
@@ -297,22 +400,45 @@ export async function getStatusDistribution(): Promise<{ status: string; count: 
 /**
  * Get masjid performance statistics
  */
-export async function getMasjidStats(): Promise<MasjidStats[]> {
+export async function getMasjidStats(userContext?: AnalyticsUserContext): Promise<MasjidStats[]> {
   try {
+    if (!userContext) {
+      console.warn('getMasjidStats called without user context');
+      return [];
+    }
+
     const masjidsRef = collection(firebaseDb, MASAJID_COLLECTION);
-    const masjidsSnapshot = await getDocs(masjidsRef);
+
+    // For zakat admins, only show their own masjid
+    let masjidsQuery;
+    if (userContext.role === 'super_admin') {
+      masjidsQuery = query(masjidsRef);
+    } else if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+      masjidsQuery = query(masjidsRef, where('__name__', '==', userContext.masjidId));
+    } else {
+      return [];
+    }
+
+    const masjidsSnapshot = await getDocs(masjidsQuery);
 
     const masjidStatsPromises = masjidsSnapshot.docs.map(async (doc) => {
       const masjid = doc.data();
 
-      // Get active flags for this masjid
-      const flagsRef = collection(firebaseDb, FLAGS_COLLECTION);
-      const flagsQuery = query(
-        flagsRef,
-        where('flaggedByMasjid', '==', doc.id),
-        where('isActive', '==', true)
-      );
-      const flagsSnapshot = await getDocs(flagsQuery);
+      // Get active flags for this masjid (admins can read flags for their own masjid)
+      let activeFlags = 0;
+      try {
+        const flagsRef = collection(firebaseDb, FLAGS_COLLECTION);
+        const flagsQuery = query(
+          flagsRef,
+          where('flaggedByMasjid', '==', doc.id),
+          where('isActive', '==', true)
+        );
+        const flagsSnapshot = await getDocs(flagsQuery);
+        activeFlags = flagsSnapshot.size;
+      } catch {
+        // If can't read flags, just show 0
+        console.warn('Could not read flags for masjid:', doc.id);
+      }
 
       // Get applications handled by this masjid
       const appsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
@@ -341,7 +467,7 @@ export async function getMasjidStats(): Promise<MasjidStats[]> {
         applicationsInProgress: masjid.stats?.applicationsInProgress || 0,
         totalDisbursed: masjid.stats?.totalAmountDisbursed || 0,
         approvalRate: total > 0 ? Math.round((approved / total) * 100) : 0,
-        activeFlags: flagsSnapshot.size,
+        activeFlags,
       };
     });
 
@@ -356,16 +482,35 @@ export async function getMasjidStats(): Promise<MasjidStats[]> {
 /**
  * Get processing metrics
  */
-export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
+export async function getProcessingMetrics(userContext?: AnalyticsUserContext): Promise<ProcessingMetrics> {
   try {
+    if (!userContext) {
+      console.warn('getProcessingMetrics called without user context');
+      return getEmptyProcessingMetrics();
+    }
+
     const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
 
     // Get applications with resolution (completed)
-    const completedQuery = query(
-      applicationsRef,
-      where('status', 'in', ['approved', 'rejected', 'disbursed', 'closed']),
-      firestoreLimit(500)
-    );
+    let completedQuery;
+    if (userContext.role === 'super_admin') {
+      completedQuery = query(
+        applicationsRef,
+        where('status', 'in', ['approved', 'rejected', 'disbursed', 'closed']),
+        firestoreLimit(500)
+      );
+    } else if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+      // Zakat admins can only see metrics for their masjid's applications
+      completedQuery = query(
+        applicationsRef,
+        where('assignedToMasjid', '==', userContext.masjidId),
+        where('status', 'in', ['approved', 'rejected', 'disbursed', 'closed']),
+        firestoreLimit(500)
+      );
+    } else {
+      return getEmptyProcessingMetrics();
+    }
+
     const completedSnapshot = await getDocs(completedQuery);
 
     const processingTimes: number[] = [];
@@ -424,14 +569,7 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
     return metrics;
   } catch (error) {
     console.error('Error getting processing metrics:', error);
-    return {
-      averageProcessingDays: 0,
-      medianProcessingDays: 0,
-      fastestProcessingDays: 0,
-      slowestProcessingDays: 0,
-      applicationsProcessedThisMonth: 0,
-      applicationsProcessedLastMonth: 0,
-    };
+    return getEmptyProcessingMetrics();
   }
 }
 
@@ -439,18 +577,39 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
  * Get recent activity
  */
 export async function getRecentActivity(
-  limit: number = 10
+  limit: number = 10,
+  userContext?: AnalyticsUserContext
 ): Promise<{ action: string; applicationNumber: string; date: string; masjidName?: string }[]> {
   try {
+    if (!userContext) {
+      console.warn('getRecentActivity called without user context');
+      return [];
+    }
+
     const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
-    const q = query(
-      applicationsRef,
-      orderBy('updatedAt', 'desc'),
-      firestoreLimit(limit)
-    );
+
+    let q;
+    if (userContext.role === 'super_admin') {
+      q = query(
+        applicationsRef,
+        orderBy('updatedAt', 'desc'),
+        firestoreLimit(limit)
+      );
+    } else if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+      // Zakat admins: query applications assigned to their masjid
+      // Note: Can't combine where with orderBy on different fields easily, so fetch more and sort client-side
+      q = query(
+        applicationsRef,
+        where('assignedToMasjid', '==', userContext.masjidId),
+        firestoreLimit(limit * 2) // Fetch extra to account for sorting
+      );
+    } else {
+      return [];
+    }
+
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((doc) => {
+    let results = snapshot.docs.map((doc) => {
       const app = doc.data() as ZakatApplication;
       let action = 'Updated';
 
@@ -472,8 +631,17 @@ export async function getRecentActivity(
         applicationNumber: app.applicationNumber,
         date: updatedDate?.toLocaleDateString() || 'Unknown',
         masjidName: app.assignedToMasjidName ?? undefined,
+        _updatedAt: updatedDate?.getTime() || 0, // For sorting
       };
     });
+
+    // Sort by updatedAt descending for zakat admins (since we couldn't use orderBy with where)
+    if (userContext.role === 'zakat_admin') {
+      results.sort((a, b) => b._updatedAt - a._updatedAt);
+    }
+
+    // Remove the internal sorting field and limit results
+    return results.slice(0, limit).map(({ _updatedAt, ...rest }) => rest);
   } catch (error) {
     console.error('Error getting recent activity:', error);
     return [];
@@ -483,8 +651,20 @@ export async function getRecentActivity(
 /**
  * Get comprehensive dashboard analytics
  */
-export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
+export async function getDashboardAnalytics(userContext?: AnalyticsUserContext): Promise<DashboardAnalytics> {
   try {
+    if (!userContext) {
+      console.warn('getDashboardAnalytics called without user context');
+      return {
+        applicationStats: getEmptyApplicationStats(),
+        processingMetrics: getEmptyProcessingMetrics(),
+        applicationsOverTime: [],
+        statusDistribution: [],
+        topMasjids: [],
+        recentActivity: [],
+      };
+    }
+
     const [
       applicationStats,
       processingMetrics,
@@ -493,12 +673,12 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       topMasjids,
       recentActivity,
     ] = await Promise.all([
-      getApplicationStats(),
-      getProcessingMetrics(),
-      getApplicationsOverTime(30),
-      getStatusDistribution(),
-      getMasjidStats(),
-      getRecentActivity(10),
+      getApplicationStats(userContext),
+      getProcessingMetrics(userContext),
+      getApplicationsOverTime(30, userContext),
+      getStatusDistribution(userContext),
+      getMasjidStats(userContext),
+      getRecentActivity(10, userContext),
     ]);
 
     return {
@@ -518,7 +698,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 /**
  * Get flag analytics
  */
-export async function getFlagAnalytics(): Promise<{
+export async function getFlagAnalytics(userContext?: AnalyticsUserContext): Promise<{
   total: number;
   active: number;
   resolved: number;
@@ -527,8 +707,26 @@ export async function getFlagAnalytics(): Promise<{
   recentFlags: ApplicantFlag[];
 }> {
   try {
+    if (!userContext) {
+      console.warn('getFlagAnalytics called without user context');
+      return getEmptyFlagAnalytics();
+    }
+
     const flagsRef = collection(firebaseDb, FLAGS_COLLECTION);
-    const snapshot = await getDocs(flagsRef);
+
+    // Both super_admin and zakat_admin can read flags according to rules
+    // But zakat admins may want to see only their masjid's flags for relevance
+    let q;
+    if (userContext.role === 'super_admin') {
+      q = query(flagsRef);
+    } else if (userContext.role === 'zakat_admin' && userContext.masjidId) {
+      // For zakat admins, show flags they created
+      q = query(flagsRef, where('flaggedByMasjid', '==', userContext.masjidId));
+    } else {
+      return getEmptyFlagAnalytics();
+    }
+
+    const snapshot = await getDocs(q);
 
     let active = 0;
     let resolved = 0;
@@ -577,13 +775,6 @@ export async function getFlagAnalytics(): Promise<{
     };
   } catch (error) {
     console.error('Error getting flag analytics:', error);
-    return {
-      total: 0,
-      active: 0,
-      resolved: 0,
-      byMasjid: [],
-      bySeverity: { warning: 0, blocked: 0 },
-      recentFlags: [],
-    };
+    return getEmptyFlagAnalytics();
   }
 }

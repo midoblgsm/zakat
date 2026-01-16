@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -8,7 +8,9 @@ import {
   getDashboardAnalytics,
   getFlagAnalytics,
   type DashboardAnalytics,
+  type AnalyticsUserContext,
 } from '@/services/analytics';
+import { useAuth } from '@/contexts/AuthContext';
 import type { ApplicantFlag } from '@/types/flag';
 
 // Simple bar chart component
@@ -153,6 +155,7 @@ function StatCard({
 }
 
 export function AnalyticsDashboard() {
+  const { userRole, userMasjidId } = useAuth();
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [flagAnalytics, setFlagAnalytics] = useState<{
     total: number;
@@ -165,14 +168,29 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Build user context for analytics queries
+  const userContext: AnalyticsUserContext | undefined = useMemo(() => {
+    if (!userRole) return undefined;
+    return {
+      role: userRole,
+      masjidId: userMasjidId,
+    };
+  }, [userRole, userMasjidId]);
+
   const loadAnalytics = useCallback(async () => {
+    if (!userContext) {
+      setError('User context not available. Please log in again.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const [dashboardData, flagData] = await Promise.all([
-        getDashboardAnalytics(),
-        getFlagAnalytics(),
+        getDashboardAnalytics(userContext),
+        getFlagAnalytics(userContext),
       ]);
       setAnalytics(dashboardData);
       setFlagAnalytics(flagData);
@@ -182,7 +200,7 @@ export function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userContext]);
 
   useEffect(() => {
     loadAnalytics();
