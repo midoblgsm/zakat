@@ -260,9 +260,11 @@ service cloud.firestore {
 
       // Disbursements subcollection - tracks monthly/individual disbursements
       match /disbursements/{disbursementId} {
-        // Applicants can view their own disbursements, admins can view all
-        allow read: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
-          || isAdmin();
+        // Applicants can view their own disbursements (using applicantId stored on document)
+        // Admins can view all disbursements
+        // Note: Using resource.data.applicantId for collectionGroup query compatibility
+        allow read: if isAuthenticated()
+          && (resource.data.applicantId == request.auth.uid || isAdmin());
 
         // Only admins can create disbursements (typically via Cloud Functions)
         allow create: if isAdmin()

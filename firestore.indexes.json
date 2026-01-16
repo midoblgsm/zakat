@@ -134,6 +134,29 @@
         { "fieldPath": "read", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "disbursements",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "applicantId", "order": "ASCENDING" },
+        { "fieldPath": "disbursedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disbursements",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "masjidId", "order": "ASCENDING" },
+        { "fieldPath": "disbursedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disbursements",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "disbursedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
