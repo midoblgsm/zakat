@@ -370,14 +370,13 @@ export const resolveApplication = onCall(
     });
 
     // Update masjid statistics
+    // Note: totalAmountDisbursed is NOT updated here because this only approves the application.
+    // The actual disbursement (and stats update) happens via changeApplicationStatus when status -> disbursed
     if (application.assignedToMasjid) {
-      const masjidRef = db.collection("masjids").doc(application.assignedToMasjid);
+      const masjidRef = db.collection("masajid").doc(application.assignedToMasjid);
       await masjidRef.update({
-        totalApplicationsHandled: FieldValue.increment(1),
-        applicationsInProgress: FieldValue.increment(-1),
-        ...(decision !== "rejected" && amountApproved
-          ? { totalAmountDisbursed: FieldValue.increment(amountApproved) }
-          : {}),
+        "stats.totalApplicationsHandled": FieldValue.increment(1),
+        "stats.applicationsInProgress": FieldValue.increment(-1),
       });
     }
 
