@@ -101,29 +101,44 @@ export async function getApplicationDisbursements(
 /**
  * Get disbursement summary for a specific person (applicant)
  * Aggregates across all their applications with breakdown by masjid
+ *
+ * @param applicantId - The applicant's user ID
+ * @param fallbackName - Optional name to use if applications can't be queried
  */
 export async function getApplicantDisbursementSummary(
-  applicantId: string
+  applicantId: string,
+  fallbackName?: string
 ): Promise<ApplicantDisbursementSummary> {
   try {
-    // Get all applications for this applicant
-    const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
-    const appQuery = query(applicationsRef, where('applicantId', '==', applicantId));
-    const appSnapshot = await getDocs(appQuery);
-
-    // Get applicant name from first application
-    let applicantName = 'Unknown Applicant';
-    if (appSnapshot.docs.length > 0) {
-      const firstApp = appSnapshot.docs[0].data() as ZakatApplication;
-      applicantName = firstApp.applicantSnapshot?.name || firstApp.demographics?.fullName || 'Unknown';
-    }
-
-    // Build application number map
+    // Try to get applications for this applicant (may fail for zakat admins
+    // who don't have permission to read all of the applicant's applications)
+    let applicantName = fallbackName || 'Unknown Applicant';
     const applicationNumberMap: Record<string, string> = {};
-    appSnapshot.docs.forEach((doc) => {
-      const data = doc.data() as ZakatApplication;
-      applicationNumberMap[doc.id] = data.applicationNumber || doc.id;
-    });
+    let applicationCount = 0;
+
+    try {
+      const applicationsRef = collection(firebaseDb, APPLICATIONS_COLLECTION);
+      const appQuery = query(applicationsRef, where('applicantId', '==', applicantId));
+      const appSnapshot = await getDocs(appQuery);
+      applicationCount = appSnapshot.size;
+
+      // Get applicant name from first application if not provided
+      if (!fallbackName && appSnapshot.docs.length > 0) {
+        const firstApp = appSnapshot.docs[0].data() as ZakatApplication;
+        applicantName = firstApp.applicantSnapshot?.name ||
+          firstApp.demographics?.fullName || 'Unknown';
+      }
+
+      // Build application number map
+      appSnapshot.docs.forEach((doc) => {
+        const data = doc.data() as ZakatApplication;
+        applicationNumberMap[doc.id] = data.applicationNumber || doc.id;
+      });
+    } catch (appError) {
+      // Zakat admins may not have permission to query all applications
+      // for this applicant - this is expected and we can continue
+      console.warn('Could not query applications for applicant:', appError);
+    }
 
     // Get all disbursements for this applicant using collectionGroup query
     const allDisbursementsRef = collectionGroup(firebaseDb, DISBURSEMENTS_SUBCOLLECTION);
@@ -169,7 +184,7 @@ export async function getApplicantDisbursementSummary(
       applicantName,
       totalDisbursed,
       disbursementCount: disbursements.length,
-      applicationCount: appSnapshot.size,
+      applicationCount: applicationCount || new Set(disbursements.map(d => d.applicationId)).size,
       lastDisbursedAt: lastDisbursement?.disbursedAt,
       byMasjid: Array.from(masjidMap.values()).sort((a, b) => b.totalDisbursed - a.totalDisbursed),
       disbursements,

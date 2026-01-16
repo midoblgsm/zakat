@@ -38,7 +38,7 @@ export function ApplicantDisbursementSummary({
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getApplicantDisbursementSummary(applicantId);
+        const data = await getApplicantDisbursementSummary(applicantId, applicantName);
         setSummary(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load disbursement summary');
@@ -48,7 +48,7 @@ export function ApplicantDisbursementSummary({
     };
 
     loadSummary();
-  }, [applicantId]);
+  }, [applicantId, applicantName]);
 
   if (isLoading) {
     return (
