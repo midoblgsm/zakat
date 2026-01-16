@@ -74,6 +74,7 @@ export interface ApplicationStats {
   pendingCount: number;
   averageRequestedAmount: number;
   totalApprovedAmount: number;
+  totalDisbursedAmount: number;
 }
 
 export interface TimeSeriesDataPoint {
@@ -145,6 +146,7 @@ export async function getApplicationStats(): Promise<ApplicationStats> {
       pendingCount: 0,
       averageRequestedAmount: 0,
       totalApprovedAmount: 0,
+      totalDisbursedAmount: 0,
     };
 
     let totalRequestedAmount = 0;
@@ -172,6 +174,10 @@ export async function getApplicationStats(): Promise<ApplicationStats> {
         completedApplications++;
         if (app.resolution?.amountApproved) {
           stats.totalApprovedAmount += app.resolution.amountApproved;
+        }
+        // Track actual disbursed amounts
+        if (app.status === 'disbursed' && app.resolution?.amountDisbursed) {
+          stats.totalDisbursedAmount += app.resolution.amountDisbursed;
         }
       } else if (app.status === 'rejected' || app.status === 'closed') {
         if (app.resolution?.decision === 'rejected') {
@@ -218,6 +224,7 @@ export async function getApplicationStats(): Promise<ApplicationStats> {
       pendingCount: 0,
       averageRequestedAmount: 0,
       totalApprovedAmount: 0,
+      totalDisbursedAmount: 0,
     };
   }
 }
