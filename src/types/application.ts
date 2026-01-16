@@ -246,11 +246,16 @@ export interface AdminNote {
 export interface ApplicationResolution {
   decision: 'approved' | 'rejected' | 'partial';
   decidedBy: string;
+  decidedByName?: string;
   decidedByMasjid: string;
   decidedAt: Timestamp;
   amountApproved?: number;
   disbursementMethod?: string;
   rejectionReason?: string;
+  // Set when status changes to 'disbursed'
+  amountDisbursed?: number;
+  disbursedAt?: Timestamp;
+  disbursedBy?: string;
 }
 
 /**
