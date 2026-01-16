@@ -609,7 +609,7 @@ export async function getRecentActivity(
 
     const snapshot = await getDocs(q);
 
-    let results = snapshot.docs.map((doc) => {
+    const results = snapshot.docs.map((doc) => {
       const app = doc.data() as ZakatApplication;
       let action = 'Updated';
 
