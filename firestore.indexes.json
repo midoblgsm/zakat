@@ -150,13 +150,6 @@
         { "fieldPath": "masjidId", "order": "ASCENDING" },
         { "fieldPath": "disbursedAt", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "disbursements",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "disbursedAt", "order": "DESCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
