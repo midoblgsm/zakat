@@ -40,6 +40,12 @@
  * - unflagApplicant: Remove flag
  * - getApplicationHistory: Get application history
  *
+ * Disbursements:
+ * - recordDisbursement: Record a new disbursement for an application
+ * - getApplicationDisbursements: Get all disbursements for an application
+ * - getApplicantDisbursementSummary: Get disbursement summary for a person
+ * - getAllDisbursements: Get all disbursements (super admin only)
+ *
  * Notifications:
  * - sendNotification: Send notification to user
  * - sendBulkNotification: Send to multiple users
@@ -90,6 +96,14 @@ export {
   unflagApplicant,
   getApplicationHistory,
 } from "./applications/notes";
+
+// Disbursement functions
+export {
+  recordDisbursement,
+  getApplicationDisbursements,
+  getApplicantDisbursementSummary,
+  getAllDisbursements,
+} from "./applications/disbursements";
 
 // Notification functions
 export {

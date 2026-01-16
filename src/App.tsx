@@ -48,6 +48,7 @@ const MasjidOnboardingPage = lazy(() => import('./pages/super-admin/MasjidOnboar
 const MasjidDetailPage = lazy(() => import('./pages/super-admin/MasjidDetailPage').then(m => ({ default: m.MasjidDetailPage })));
 const UserManagementPage = lazy(() => import('./pages/super-admin/UserManagementPage').then(m => ({ default: m.UserManagementPage })));
 const SuperAdminApplicationsPage = lazy(() => import('./pages/super-admin/SuperAdminApplicationsPage').then(m => ({ default: m.SuperAdminApplicationsPage })));
+const DisbursementsPage = lazy(() => import('./pages/super-admin/DisbursementsPage').then(m => ({ default: m.DisbursementsPage })));
 
 // Error Pages
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
@@ -114,6 +115,7 @@ function App() {
             <Route path="users" element={<UserManagementPage />} />
             <Route path="applications" element={<SuperAdminApplicationsPage />} />
             <Route path="applications/:id" element={<AdminApplicationDetailPage />} />
+            <Route path="disbursements" element={<DisbursementsPage />} />
             <Route path="flags" element={<FlagManagementPage />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
           </Route>

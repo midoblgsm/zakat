@@ -34,6 +34,7 @@ export const ROUTES = {
     MASJID_DETAIL: '/super-admin/masajid/:id',
     USERS: '/super-admin/users',
     APPLICATIONS: '/super-admin/applications',
+    DISBURSEMENTS: '/super-admin/disbursements',
     FLAGS: '/super-admin/flags',
     SETTINGS: '/super-admin/settings',
   },

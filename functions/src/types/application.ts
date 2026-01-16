@@ -236,3 +236,61 @@ export interface ListApplicationsRequest {
   startAfter?: string;
   poolOnly?: boolean;
 }
+
+// ============================================
+// DISBURSEMENT TYPES
+// ============================================
+
+/**
+ * Payment method for disbursement
+ */
+export type DisbursementMethod =
+  | "check"
+  | "cash"
+  | "bank_transfer"
+  | "money_order"
+  | "gift_card"
+  | "direct_payment"
+  | "other";
+
+/**
+ * Individual disbursement record
+ * Stored in /applications/{appId}/disbursements/{disbursementId}
+ */
+export interface Disbursement {
+  id: string;
+  applicationId: string;
+  applicantId: string;
+  amount: number;
+  method: DisbursementMethod;
+  referenceNumber?: string;
+  notes?: string;
+  disbursedBy: string;
+  disbursedByName: string;
+  masjidId: string;
+  masjidName: string;
+  disbursedAt: Timestamp;
+  periodMonth?: number;
+  periodYear?: number;
+  createdAt: Timestamp;
+}
+
+/**
+ * Request to record a disbursement
+ */
+export interface RecordDisbursementRequest {
+  applicationId: string;
+  amount: number;
+  method: DisbursementMethod;
+  referenceNumber?: string;
+  notes?: string;
+  periodMonth?: number;
+  periodYear?: number;
+}
+
+/**
+ * Request to get applicant disbursement summary
+ */
+export interface GetApplicantDisbursementRequest {
+  applicantId: string;
+}
