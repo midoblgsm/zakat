@@ -23,43 +23,23 @@ import type { ApplicantFlag } from '../types/flag';
 
 /**
  * Safely convert a Firestore timestamp to a Date object.
- * Handles different timestamp formats from Firestore/Cloud Functions serialization:
- * - Native Timestamp objects with toDate() method
- * - Plain objects with seconds/nanoseconds or _seconds/_nanoseconds
- * - Date objects
- * - Numeric timestamps
- * Returns null if conversion fails.
+ * Handles both Timestamp instances and plain objects {seconds, nanoseconds}.
  */
 function timestampToDate(timestamp: unknown): Date | null {
   if (!timestamp) return null;
 
-  // Handle native Firestore Timestamp with toDate method
-  if (typeof timestamp === 'object' && timestamp !== null) {
-    // Check for toDate method (native Firestore Timestamp)
-    if ('toDate' in timestamp && typeof (timestamp as { toDate: unknown }).toDate === 'function') {
-      try {
-        return (timestamp as Timestamp).toDate();
-      } catch {
-        // Fall through to other methods
-      }
-    }
-
-    // Handle serialized timestamp objects with seconds property
-    const ts = timestamp as Record<string, unknown>;
-    const seconds = ts.seconds ?? ts._seconds;
-    if (typeof seconds === 'number') {
-      return new Date(seconds * 1000);
-    }
+  // If it's a Firestore Timestamp with toDate method
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate();
   }
 
-  // Handle Date objects
-  if (timestamp instanceof Date) {
-    return timestamp;
+  // If it's a plain object with seconds (serialized Timestamp)
+  const ts = timestamp as { seconds?: number; nanoseconds?: number; toDate?: () => Date };
+  if (typeof ts.toDate === 'function') {
+    return ts.toDate();
   }
-
-  // Handle numeric timestamps (milliseconds)
-  if (typeof timestamp === 'number') {
-    return new Date(timestamp);
+  if (typeof ts.seconds === 'number') {
+    return new Date(ts.seconds * 1000 + (ts.nanoseconds || 0) / 1000000);
   }
 
   return null;
@@ -400,22 +380,22 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
     completedSnapshot.docs.forEach((doc) => {
       const app = doc.data() as ZakatApplication;
 
-      // Calculate processing time using safe timestamp conversion
-      const submitted = timestampToDate(app.submittedAt);
-      const decided = timestampToDate(app.resolution?.decidedAt);
+      // Calculate processing time
+      const submittedDate = timestampToDate(app.submittedAt);
+      const decidedDate = timestampToDate(app.resolution?.decidedAt);
 
-      if (submitted && decided) {
-        const days = Math.ceil((decided.getTime() - submitted.getTime()) / (1000 * 60 * 60 * 24));
+      if (submittedDate && decidedDate) {
+        const days = Math.ceil((decidedDate.getTime() - submittedDate.getTime()) / (1000 * 60 * 60 * 24));
         if (days >= 0) {
           processingTimes.push(days);
         }
       }
 
       // Count by month
-      if (decided) {
-        if (decided >= thisMonthStart) {
+      if (decidedDate) {
+        if (decidedDate >= thisMonthStart) {
           thisMonthCount++;
-        } else if (decided >= lastMonthStart && decided <= lastMonthEnd) {
+        } else if (decidedDate >= lastMonthStart && decidedDate <= lastMonthEnd) {
           lastMonthCount++;
         }
       }
