@@ -25,7 +25,7 @@ import type { ApplicantFlag } from '../types/flag';
  * Safely convert a Firestore timestamp to a Date object.
  * Handles both Timestamp instances and plain objects {seconds, nanoseconds}.
  */
-function toDate(timestamp: unknown): Date | null {
+function timestampToDate(timestamp: unknown): Date | null {
   if (!timestamp) return null;
 
   // If it's a Firestore Timestamp with toDate method
@@ -381,8 +381,8 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
       const app = doc.data() as ZakatApplication;
 
       // Calculate processing time
-      const submittedDate = toDate(app.submittedAt);
-      const decidedDate = toDate(app.resolution?.decidedAt);
+      const submittedDate = timestampToDate(app.submittedAt);
+      const decidedDate = timestampToDate(app.resolution?.decidedAt);
 
       if (submittedDate && decidedDate) {
         const days = Math.ceil((decidedDate.getTime() - submittedDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -395,7 +395,7 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
       if (decidedDate) {
         if (decidedDate >= thisMonthStart) {
           thisMonthCount++;
-        } else if (decided >= lastMonthStart && decided <= lastMonthEnd) {
+        } else if (decidedDate >= lastMonthStart && decidedDate <= lastMonthEnd) {
           lastMonthCount++;
         }
       }
