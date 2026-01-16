@@ -15,6 +15,7 @@ import { Input } from '@/components/common/Input';
 import { Alert } from '@/components/common/Alert';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { getMasjid, updateMasjid, updateMasjidZakatConfig } from '@/services/masjid';
+import { listUsers } from '@/services/functions';
 import {
   updateMasjidProfileSchema,
   US_STATES,
@@ -22,7 +23,7 @@ import {
   type UpdateMasjidProfileFormData,
   type ZakatConfigFormData,
 } from '@/schemas/masjid';
-import type { Masjid, AssistanceType } from '@/types';
+import type { Masjid, AssistanceType, User } from '@/types';
 
 type TabId = 'profile' | 'branding' | 'zakat' | 'admins';
 
@@ -45,6 +46,8 @@ export function MasjidDetailPage() {
     (location.state as { success?: string })?.success || null
   );
   const [activeTab, setActiveTab] = useState<TabId>('profile');
+  const [admins, setAdmins] = useState<User[]>([]);
+  const [adminsLoading, setAdminsLoading] = useState(false);
 
   // Profile form
   const profileForm = useForm<UpdateMasjidProfileFormData>({
@@ -59,6 +62,29 @@ export function MasjidDetailPage() {
       loadMasjid();
     }
   }, [id]);
+
+  // Load admins when the admins tab is selected
+  useEffect(() => {
+    if (activeTab === 'admins' && id) {
+      loadAdmins();
+    }
+  }, [activeTab, id]);
+
+  const loadAdmins = async () => {
+    if (!id) return;
+
+    setAdminsLoading(true);
+    try {
+      const response = await listUsers({ masjidId: id, role: 'zakat_admin' });
+      if (response.success && response.data) {
+        setAdmins(response.data.users as User[]);
+      }
+    } catch (err) {
+      console.error('Error loading admins:', err);
+    } finally {
+      setAdminsLoading(false);
+    }
+  };
 
   const loadMasjid = async () => {
     if (!id) return;
@@ -489,20 +515,77 @@ export function MasjidDetailPage() {
         );
 
       case 'admins':
+        if (adminsLoading) {
+          return (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner size="lg" />
+            </div>
+          );
+        }
+
+        if (admins.length === 0) {
+          return (
+            <div className="text-center py-8">
+              <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No Admins</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                This masjid doesn't have any assigned admins yet.
+              </p>
+              <div className="mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/super-admin/users?masjidId=${id}`)}
+                >
+                  Assign Admin
+                </Button>
+              </div>
+            </div>
+          );
+        }
+
         return (
-          <div className="text-center py-8">
-            <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Admin Management</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Go to User Management to assign admins to this masjid.
-            </p>
-            <div className="mt-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                Masjid Admins ({admins.length})
+              </h3>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => navigate(`/super-admin/users?masjidId=${id}`)}
               >
                 Manage Users
               </Button>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {admins.map((admin) => (
+                <div key={admin.id} className="py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <span className="text-primary-700 font-medium">
+                        {admin.firstName?.charAt(0) || ''}{admin.lastName?.charAt(0) || ''}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {admin.firstName} {admin.lastName}
+                      </p>
+                      <p className="text-sm text-gray-500">{admin.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        admin.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {admin.isActive ? 'Active' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         );

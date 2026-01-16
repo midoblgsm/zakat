@@ -240,8 +240,9 @@ export async function getApplicationsOverTime(days: number = 30): Promise<TimeSe
 
     snapshot.docs.forEach((doc) => {
       const app = doc.data() as ZakatApplication;
-      if (app.createdAt) {
-        const date = app.createdAt.toDate().toISOString().split('T')[0];
+      const createdDate = timestampToDate(app.createdAt);
+      if (createdDate) {
+        const date = createdDate.toISOString().split('T')[0];
         if (countsByDate[date] !== undefined) {
           countsByDate[date]++;
         }
@@ -394,7 +395,7 @@ export async function getProcessingMetrics(): Promise<ProcessingMetrics> {
       if (decidedDate) {
         if (decidedDate >= thisMonthStart) {
           thisMonthCount++;
-        } else if (decidedDate >= lastMonthStart && decidedDate <= lastMonthEnd) {
+        } else if (decided >= lastMonthStart && decided <= lastMonthEnd) {
           lastMonthCount++;
         }
       }
@@ -465,10 +466,11 @@ export async function getRecentActivity(
         action = 'Disbursed';
       }
 
+      const updatedDate = timestampToDate(app.updatedAt);
       return {
         action,
         applicationNumber: app.applicationNumber,
-        date: app.updatedAt?.toDate().toLocaleDateString() || 'Unknown',
+        date: updatedDate?.toLocaleDateString() || 'Unknown',
         masjidName: app.assignedToMasjidName ?? undefined,
       };
     });
@@ -559,8 +561,8 @@ export async function getFlagAnalytics(): Promise<{
     // Sort flags by createdAt for recent flags
     const recentFlags = allFlags
       .sort((a, b) => {
-        const aTime = a.createdAt?.toMillis?.() || 0;
-        const bTime = b.createdAt?.toMillis?.() || 0;
+        const aTime = timestampToDate(a.createdAt)?.getTime() || 0;
+        const bTime = timestampToDate(b.createdAt)?.getTime() || 0;
         return bTime - aTime;
       })
       .slice(0, 5);
