@@ -576,11 +576,30 @@ export const changeApplicationStatus = onCall(
 
     const previousStatus = application.status;
 
+    // Get user info early as it may be needed for resolution and history
+    const userInfo = await getUserInfo(auth.uid);
+
+    // Check if application was already resolved (via resolveApplication)
+    // This prevents double-counting stats when moving from approved -> disbursed
+    const wasAlreadyResolved = !!application.resolution?.decidedAt;
+
     // Build update object
     const updateData: Record<string, unknown> = {
       status: newStatus,
       updatedAt: Timestamp.now(),
     };
+
+    // Set resolution.decidedAt for terminal statuses if not already set
+    // This is needed for analytics to calculate processing time metrics
+    const terminalStatuses = ["approved", "rejected", "disbursed", "closed"];
+    if (terminalStatuses.includes(newStatus) && !wasAlreadyResolved) {
+      updateData["resolution.decidedAt"] = Timestamp.now();
+      updateData["resolution.decidedBy"] = auth.uid;
+      updateData["resolution.decidedByName"] = userInfo.name;
+      if (newStatus === "rejected" || newStatus === "closed") {
+        updateData["resolution.decision"] = newStatus === "rejected" ? "rejected" : "closed";
+      }
+    }
 
     // Add disbursed amount to resolution when disbursing
     if (newStatus === "disbursed" && disbursedAmount) {
@@ -588,20 +607,19 @@ export const changeApplicationStatus = onCall(
       updateData["resolution.disbursedAt"] = Timestamp.now();
       updateData["resolution.disbursedBy"] = auth.uid;
 
-      // Update masjid stats
+      // Update masjid stats - only totalAmountDisbursed
+      // totalApplicationsHandled and applicationsInProgress were already updated by resolveApplication
       if (application.assignedToMasjid) {
         const masjidRef = db.collection("masajid").doc(application.assignedToMasjid);
         await masjidRef.update({
           "stats.totalAmountDisbursed": FieldValue.increment(disbursedAmount),
-          "stats.totalApplicationsHandled": FieldValue.increment(1),
         });
-        // Safely decrement in-progress count (never go below 0)
-        await safeDecrementMasjidStat(application.assignedToMasjid, "applicationsInProgress");
       }
     }
 
-    // Decrement in-progress count for other terminal statuses (rejected, closed)
-    if (["rejected", "closed"].includes(newStatus) && application.assignedToMasjid) {
+    // Update masjid stats for terminal statuses if not already resolved
+    // This handles direct rejections/closures that bypass resolveApplication
+    if (!wasAlreadyResolved && ["rejected", "closed"].includes(newStatus) && application.assignedToMasjid) {
       const masjidRef = db.collection("masajid").doc(application.assignedToMasjid);
       await masjidRef.update({
         "stats.totalApplicationsHandled": FieldValue.increment(1),
@@ -613,8 +631,6 @@ export const changeApplicationStatus = onCall(
     await applicationRef.update(updateData);
 
     // Create history entry
-    const userInfo = await getUserInfo(auth.uid);
-
     let historyDetails: string;
     if (newStatus === "disbursed" && disbursedAmount) {
       const amt = `$${disbursedAmount.toLocaleString()}`;
