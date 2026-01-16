@@ -93,7 +93,7 @@ export function SuperAdminDashboard() {
           value: `$${stats.totalAmountDisbursed.toLocaleString()}`,
           icon: CurrencyDollarIcon,
           color: 'bg-amber-500',
-          link: null,
+          link: '/super-admin/disbursements',
         },
       ]
     : [];
@@ -146,7 +146,7 @@ export function SuperAdminDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader title="Masajid Management" />
               <CardContent>
@@ -193,6 +193,21 @@ export function SuperAdminDashboard() {
                   <Button fullWidth>
                     <DocumentTextIcon className="h-4 w-4 mr-2" />
                     View All Applications
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader title="Disbursements" />
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  Track all disbursements with breakdown by person and masjid.
+                </p>
+                <Link to="/super-admin/disbursements" className="mt-4 block">
+                  <Button fullWidth>
+                    <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                    View All Disbursements
                   </Button>
                 </Link>
               </CardContent>

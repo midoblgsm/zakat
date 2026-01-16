@@ -257,6 +257,25 @@ service cloud.firestore {
         // Only super admins can delete
         allow delete: if isSuperAdmin();
       }
+
+      // Disbursements subcollection - tracks monthly/individual disbursements
+      match /disbursements/{disbursementId} {
+        // Applicants can view their own disbursements, admins can view all
+        allow read: if isOwner(get(/databases/$(database)/documents/applications/$(applicationId)).data.applicantId)
+          || isAdmin();
+
+        // Only admins can create disbursements (typically via Cloud Functions)
+        allow create: if isAdmin()
+          && request.resource.data.disbursedBy == request.auth.uid
+          && request.resource.data.amount > 0;
+
+        // Disbursements cannot be updated (immutable for audit trail)
+        // Only super admins can make corrections
+        allow update: if isSuperAdmin();
+
+        // Only super admins can delete disbursements
+        allow delete: if isSuperAdmin();
+      }
     }
 
     // ============================================

@@ -19,6 +19,8 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { Modal, ModalFooter } from '@/components/common/Modal';
 import { MasjidNameDisplay } from '@/components/common/MasjidNameDisplay';
 import { DocumentVerificationPanel } from '@/components/admin/DocumentVerificationPanel';
+import { DisbursementHistoryPanel } from '@/components/admin/DisbursementHistoryPanel';
+import { ApplicantDisbursementSummary } from '@/components/admin/ApplicantDisbursementSummary';
 import { FlagApplicantModal, FlagAlertBanner } from '@/components/flags';
 import { createFlag } from '@/services/flag';
 import type { FlagSeverity } from '@/types/flag';
@@ -539,6 +541,8 @@ export function AdminApplicationDetailPage() {
   }
 
   const isSuperAdmin = claims?.role === 'super_admin';
+  const isZakatAdmin = claims?.role === 'zakat_admin';
+  const isAdmin = isSuperAdmin || isZakatAdmin;
   const isAssignedToMe = application.assignedTo === user?.uid;
   const hasMasjidId = !!claims?.masjidId;
   const canClaim = application.status === 'submitted' && !application.assignedTo && hasMasjidId;
@@ -857,6 +861,28 @@ export function AdminApplicationDetailPage() {
         canVerify={isAssignedToMe && hasMasjidId}
         onUpdate={loadApplication}
       />
+
+      {/* Disbursement History */}
+      {['approved', 'disbursed', 'closed'].includes(application.status) && (
+        <DisbursementHistoryPanel
+          applicationId={application.id}
+          applicationNumber={application.applicationNumber}
+          approvedAmount={application.resolution?.amountApproved}
+          assistanceType={application.zakatRequest?.assistanceType}
+          canRecordDisbursement={isAssignedToMe && hasMasjidId}
+          applicationStatus={application.status}
+        />
+      )}
+
+      {/* Person-Level Disbursement Summary (shown if person has received disbursements from other applications) */}
+      {isAdmin && application.applicantId && (
+        <div className="mb-6">
+          <ApplicantDisbursementSummary
+            applicantId={application.applicantId}
+            applicantName={application.applicantSnapshot?.name}
+          />
+        </div>
+      )}
 
       {/* References */}
       <Section title="References">
